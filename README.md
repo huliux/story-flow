@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-0.1.0-orange.svg)](https://github.com/your-username/story-flow)
+[![Version](https://img.shields.io/badge/Version-0.1.0-orange.svg)](https://github.com/story-flow/story-flow)
 
 一个强大的AI驱动文本到视频生成系统，能够将小说、故事等文本内容自动转换为包含AI生成图像、真实语音合成和精美字幕的完整视频作品。
 
@@ -20,6 +20,7 @@
 - **多LLM支持** - OpenAI GPT-3.5/4 / DeepSeek (性价比更高)
 - **智能分段** - 自动识别章节和段落结构
 - **内容分析** - AI理解文本内容并生成描述
+- **角色名替换** - 支持自定义角色名映射和LoRA编号
 - **多语言支持** - 支持中英文内容处理
 
 ### 🎨 AI图像生成
@@ -54,7 +55,7 @@
 
 #### 1. 克隆项目
 ```bash
-git clone https://github.com/your-username/story-flow.git
+git clone https://github.com/story-flow/story-flow.git
 cd story-flow
 ```
 
@@ -93,13 +94,24 @@ uv run python scripts/test_llm.py
 
 ### 🎬 开始创作
 
-#### 方式一：全自动流水线
+#### 方式一：使用主程序（推荐）
 ```bash
-# 准备你的文本文件
-echo "第一章 神秘的开始\n\n在一个月黑风高的夜晚..." > data/input/story.txt
+# 1. 准备配置文件
+cp data/input/character_mapping.json.template data/input/character_mapping.json
+cp data/input/input.md.template data/input/input.md
 
-# 一键生成视频
-uv run python scripts/auto_pipeline.py
+# 2. 编辑配置文件（添加你的角色映射和故事内容）
+# 编辑 data/input/character_mapping.json 和 data/input/input.md
+
+# 3. 运行主程序
+# 交互式菜单模式
+python main.py
+
+# 或直接自动执行所有流程
+python main.py --auto
+
+# 查看所有可用选项
+python main.py --help
 ```
 
 #### 方式二：分步执行
@@ -119,6 +131,8 @@ uv run python src/pipeline/voice_synthesizer.py
 # 5. 视频合成
 uv run python src/pipeline/video_composer.py
 ```
+
+
 
 ## 📚 完整文档
 
@@ -165,6 +179,43 @@ SD_CFG_SCALE=7.5
 SD_WIDTH=1360
 SD_HEIGHT=1024
 ```
+
+### 📝 输入文件配置
+
+#### 角色映射配置
+
+首次使用需要创建角色映射配置文件：
+
+```bash
+# 复制模板文件
+cp data/input/character_mapping.json.template data/input/character_mapping.json
+```
+
+编辑 `character_mapping.json` 配置角色名替换和LoRA编号：
+
+```json
+[
+  {
+    "original_name": "小雨",
+    "new_name": "红发女孩",
+    "lora_id": "1"
+  },
+  {
+    "original_name": "程宗扬",
+    "new_name": "30岁黑发大叔",
+    "lora_id": "2"
+  }
+]
+```
+
+#### 故事内容配置
+
+```bash
+# 复制模板文件
+cp data/input/input.md.template data/input/input.md
+```
+
+然后编辑 `input.md` 文件，添加您的故事内容。角色名将根据上述配置自动替换。
 
 ### 🎛️ 高级配置
 
@@ -214,7 +265,7 @@ story-flow/
 │   ├── 📄 llm_client.py       # LLM客户端
 │   └── 📁 pipeline/           # 处理流水线
 │       ├── 📄 text_splitter.py    # 文本分割
-│       ├── 📄 text_analyzer.py    # 文本分析
+│       ├── 📄 text_analyzer.py    # 文本分析（支持角色名替换）
 │       ├── 📄 image_generator.py  # 图像生成
 │       ├── 📄 voice_synthesizer.py # 语音合成
 │       └── 📄 video_composer.py   # 视频合成
@@ -224,7 +275,14 @@ story-flow/
 │   └── 📄 test_llm.py        # LLM测试
 ├── 📁 data/                   # 数据目录
 │   ├── 📁 input/             # 输入文件
-│   └── 📁 output/            # 输出文件
+│   │   ├── 📄 character_mapping.json.template  # 角色映射模板
+│   │   └── 📄 input.md.template               # 故事内容模板
+│   ├── 📁 output/            # 输出文件
+│   │   ├── 📁 images/        # 生成的图像
+│   │   ├── 📁 audio/         # 生成的音频
+│   │   ├── 📁 videos/        # 生成的视频
+│   │   └── 📁 processed/     # 处理后的CSV文件
+│   └── 📁 temp/              # 临时文件
 ├── 📁 docs/                   # 文档
 └── 📄 pyproject.toml         # 项目配置
 ```
@@ -256,11 +314,14 @@ story-flow/
 
 如果您遇到问题或有建议，请：
 1. 查看 [常见问题](docs/FAQ.md)
-2. 搜索现有的 [Issues](https://github.com/your-username/story-flow/issues)
+2. 搜索现有的 [Issues](https://github.com/story-flow/story-flow/issues)
 3. 创建新的 Issue 并提供详细信息
 
 ### 📝 开发计划
 
+- [x] ~~支持CSV格式替代Excel~~ ✅ 已完成
+- [x] ~~角色名替换和LoRA编号功能~~ ✅ 已完成
+- [x] ~~模板文件系统~~ ✅ 已完成
 - [ ] 支持更多语音服务商
 - [ ] 添加视频模板系统
 - [ ] 支持实时预览
@@ -288,6 +349,6 @@ story-flow/
 
 **📚 完整使用教程请查看上方文档链接**
 
-[🏠 主页](https://github.com/your-username/story-flow) • [📖 文档](docs/) • [🐛 问题反馈](https://github.com/your-username/story-flow/issues) • [💬 讨论](https://github.com/your-username/story-flow/discussions)
+[🏠 主页](https://github.com/story-flow/story-flow) • [📖 文档](docs/) • [🐛 问题反馈](https://github.com/story-flow/story-flow/issues) • [💬 讨论](https://github.com/story-flow/story-flow/discussions)
 
 </div>

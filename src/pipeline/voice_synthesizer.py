@@ -1,7 +1,8 @@
 import os
 import sys
-import openpyxl
+import pandas as pd
 import asyncio
+from pathlib import Path
 from tqdm.asyncio import tqdm as async_tqdm
 import argparse
 import azure.cognitiveservices.speech as speechsdk
@@ -10,6 +11,11 @@ from io import BytesIO
 import html
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from src.config import config
 
 # 验证Azure配置
@@ -111,12 +117,13 @@ async def process_text_files(input_file, output_dir, language):
     output_dir.mkdir(parents=True, exist_ok=True)
     
     try:
-        wb = openpyxl.load_workbook(input_file)
-        sheet = wb.active
-        column = sheet["A"]
+        df = pd.read_csv(input_file)
         
-        # 过滤掉空的单元格
-        texts = [(i, cell.value) for i, cell in enumerate(column, 1) if cell.value and cell.value.strip()]
+        # 获取第一列的文本内容
+        column_data = df.iloc[:, 0].fillna("").tolist()
+        
+        # 过滤掉空的文本
+        texts = [(i, text) for i, text in enumerate(column_data, 1) if text and str(text).strip()]
         
         if not texts:
             print("错误: 未找到任何文本内容")
@@ -157,7 +164,7 @@ async def process_text_files(input_file, output_dir, language):
                 
             results.append(result)
         
-        wb.close()
+        # CSV文件无需关闭
         print(f"语音合成完成！成功: {success_count}, 失败: {error_count}")
         return results
         
@@ -168,7 +175,7 @@ async def process_text_files(input_file, output_dir, language):
 def main():
     """主函数"""
     # 使用配置文件中的路径
-    input_file = config.output_excel_file
+    input_file = config.output_csv_file
     output_dir = config.output_dir_voice
     language = "zh-CN"
     

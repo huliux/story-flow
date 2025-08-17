@@ -1,12 +1,18 @@
 import os
 import sys
-import openpyxl
-from tqdm import tqdm
-from docx import Document
+import json
 import re
 import spacy
 import time
+from pathlib import Path
+from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from src.config import config
 from src.llm_client import llm_client
 
@@ -25,9 +31,11 @@ print(f"✅ 使用 {provider_info['provider']} - {provider_info['model']}")
 # 加载 Spacy 的中文模型，用于句子的分割
 try:
     nlp = spacy.load('zh_core_web_sm')
+    print("✅ 已加载中文spaCy模型")
 except OSError:
-    print("错误: 未安装中文spaCy模型，请运行: python -m spacy download zh_core_web_sm")
-    sys.exit(1)
+    print("⚠️  警告: 未安装中文spaCy模型，将使用简单的句子分割方法")
+    print("   如需完整功能，请运行: uv add https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.7.0/zh_core_web_sm-3.7.0-py3-none-any.whl")
+    nlp = None
 
 
 # 定义一个函数，将字符数少于设定值的句子进行合并
@@ -60,7 +68,6 @@ def translate_to_english(text):
     return llm_client.translate_to_english(text)
 
 # 定义一个函数，将文本翻译为分镜脚本
-
 def translate_to_storyboard(text):
     """将文本翻译为分镜脚本"""
     messages = [
@@ -69,115 +76,154 @@ def translate_to_storyboard(text):
     ]
     return llm_client.chat_completion(messages)
 
-# 定义一个函数，读取 docx 文件中的段落
-def read_docx(file_path):
-    document = Document(file_path)
-    paragraphs = [paragraph.text for paragraph in document.paragraphs if paragraph.text.strip()]
-    if not paragraphs:
-        raise ValueError("未能读取到有效的文本内容")
-    return paragraphs
+# 定义一个函数，读取JSON章节文件
+def read_chapters_json(file_path):
+    """读取JSON格式的章节文件"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            chapters = json.load(file)
+            if not chapters:
+                raise ValueError("章节文件内容为空")
+            return chapters
+    except FileNotFoundError:
+        raise ValueError(f"章节文件不存在: {file_path}")
+    except json.JSONDecodeError:
+        raise ValueError(f"章节文件格式错误: {file_path}")
+    except Exception as e:
+        raise ValueError(f"读取章节文件时发生错误: {e}")
 
-# 定义一个函数，将分割后的句子写入到 Excel 文件的 A 列
-def write_to_excel(sentences, workbook):
-    sheet = workbook.active
-    for idx, sentence in enumerate(sentences, 1):
+# 定义一个函数，读取角色映射配置
+def read_character_mapping():
+    """读取角色映射配置文件"""
+    mapping_file = config.input_dir / "character_mapping.json"
+    if not mapping_file.exists():
+        print(f"警告: 角色映射文件不存在 {mapping_file}，将不进行角色名替换")
+        return []
+    
+    try:
+        with open(mapping_file, 'r', encoding='utf-8') as file:
+            mappings = json.load(file)
+            return mappings
+    except Exception as e:
+        print(f"警告: 读取角色映射文件时发生错误: {e}，将不进行角色名替换")
+        return []
+
+# 定义一个函数，应用角色名替换
+def apply_character_replacement(text, character_mappings):
+    """应用角色名替换并返回替换后的文本和LoRA编号列表"""
+    replaced_text = text
+    lora_ids = set()
+    
+    for mapping in character_mappings:
+        original_name = mapping.get('original_name', '')
+        new_name = mapping.get('new_name', '')
+        lora_id = mapping.get('lora_id', '')
+        
+        if original_name in replaced_text:
+            replaced_text = replaced_text.replace(original_name, new_name)
+            if lora_id:
+                lora_ids.add(lora_id)
+    
+    # 将LoRA编号列表转换为逗号分隔的字符串
+    lora_string = ','.join(sorted(lora_ids)) if lora_ids else ''
+    
+    return replaced_text, lora_string
+
+# 定义一个函数，创建DataFrame用于CSV输出
+def create_dataframe(sentences, character_mappings):
+    """创建包含句子的DataFrame"""
+    data = []
+    for sentence in sentences:
         if sentence.strip():  # Ignore blank lines
-            sheet.cell(row=idx, column=1, value=sentence)
+            replaced_text, lora_ids = apply_character_replacement(sentence, character_mappings)
+            data.append([sentence, "", "", replaced_text, lora_ids])  # A列：原始中文，B列：英文翻译，C列：故事板，D列：替换后中文，E列：LoRA编号
+    
+    df = pd.DataFrame(data, columns=["原始中文", "英文翻译", "故事板提示词", "替换后中文", "LoRA编号"])
+    return df
 
 def replace_text_in_sentences(sentences, original_text, new_text):
     return [sentence.replace(original_text, new_text) for sentence in sentences]
 
-def process_text_sentences(workbook, input_file_path, output_file_path):
-    """处理文本句子，生成翻译和分镜脚本"""
+def process_single_chapter_csv(chapter, output_file_path):
+    """处理单个章节，生成CSV文件"""
     try:
-        paragraphs = read_docx(input_file_path)
-    except ValueError as e:
-        print(f"发生错误：{str(e)}")
+        sentences = []
+        # 从章节内容中提取句子
+        content = chapter.get('content', '')
+        # 移除Markdown标题标记
+        content = re.sub(r'^#+\s*', '', content, flags=re.MULTILINE)
+        # 按句子分割
+        chapter_sentences = re.findall('.*?[。！？]', content)
+        sentences.extend(chapter_sentences)
+
+        sentences = merge_short_sentences(sentences)  
+
+        # 读取角色映射配置
+        character_mappings = read_character_mapping()
+        
+        # 创建DataFrame
+        df = create_dataframe(sentences, character_mappings)
+        
+        # 自动处理，不需要用户输入
+        max_workers = min(len(sentences), config.max_workers_translation)            
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 使用替换后的文本进行翻译
+            futures_translation = {executor.submit(translate_to_english, df.iloc[idx, 3].strip()): idx 
+                                   for idx in range(len(df))}
+            futures_storyboard = {} 
+
+            for future in tqdm(as_completed(futures_translation), total=len(futures_translation), desc='正在翻译文本'):
+                idx = futures_translation[future]
+                translated_text = future.result()
+                df.iloc[idx, 1] = translated_text  # 英文翻译列
+                futures_storyboard[executor.submit(translate_to_storyboard, translated_text)] = idx
+
+            for future in tqdm(as_completed(futures_storyboard), total=len(futures_storyboard), desc='正在生成故事板'):
+                idx = futures_storyboard[future]
+                df.iloc[idx, 2] = future.result()  # 故事板提示词列
+
+        # 保存为CSV文件
+        df.to_csv(output_file_path, index=False, encoding='utf-8')
+        return True
+        
+    except Exception as e:
+        print(f"处理章节CSV时发生错误: {e}")
         return False
 
-    sentences = []
-    for paragraph in paragraphs:
-        sentences.extend(re.findall('.*?[。！？]', paragraph))
-
-    sentences = merge_short_sentences(sentences)  
-
-    write_to_excel(sentences, workbook)  # 先将原始句子写入到Excel的A列
-
-    while True:
-        input_text = input("请输入要被替换的文字和需要绑定的数字（格式：“原文 新文 数字”，n/N结束）:")
-        if input_text.lower() == 'n':
-            break
-        original_text, new_text, number = input_text.split()
-        sentences = replace_text_in_sentences(sentences, original_text, new_text)
-
-        sheet = workbook.active
-        for idx, sentence in enumerate(sentences, 1):
-            if new_text in sentence:  # 如果新文本在句子中，将数字填入到第5列
-                sheet.cell(row=idx, column=5, value=number)
-            else:
-                if sheet.cell(row=idx, column=5).value is None:  # 如果新文本不在句子中，并且第5列尚未被填充，将0填入到第5列
-                    sheet.cell(row=idx, column=5, value=0)
-
-    sheet = workbook.active
-    max_workers = min(len(sentences), config.max_workers_translation)            
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures_translation = {executor.submit(translate_to_english, sentence.strip()): idx 
-                               for idx, sentence in enumerate(sentences, 1)}
-        futures_storyboard = {} 
-
-        for future in tqdm(as_completed(futures_translation), total=len(futures_translation), desc='正在翻译文本'):
-            idx = futures_translation[future]
-            translated_text = future.result()
-            sheet.cell(row=idx, column=2, value=translated_text)
-            sheet.cell(row=idx, column=4, value=sentences[idx-1])  # Add replaced sentences to 'D' column
-            futures_storyboard[executor.submit(translate_to_storyboard, translated_text)] = idx
-
-        for future in tqdm(as_completed(futures_storyboard), total=len(futures_storyboard), desc='正在生成故事板'):
-            idx = futures_storyboard[future]
-            sheet.cell(row=idx, column=3, value=future.result())
-
-    workbook.save(output_file_path)
-    return True
+def process_chapter_to_csv(chapter, output_file_path):
+    """处理单个章节，生成CSV文件"""
+    return process_single_chapter_csv(chapter, output_file_path)
 
 def main():
-    """主函数：执行文本分析和分镜脚本生成"""
-    input_file_path = config.input_docx_file
-    output_file_path = config.output_excel_file
-    
-    print(f"Step 1: AI文本分析和分镜脚本生成")
-    print(f"输入文件: {input_file_path}")
-    print(f"输出文件: {output_file_path}")
-    
-    # 检查输入文件是否存在
-    if not input_file_path.exists():
-        print(f"错误: 输入文件不存在 - {input_file_path}")
-        return False
-    
-    # 确保输出目录存在
-    output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # 验证配置
-    errors = config.validate_config()
-    if errors:
-        print("配置错误:")
-        for error in errors:
-            print(f"  - {error}")
-        return False
-    
+    """主函数 - 只处理单个章节生成CSV文件"""
     try:
-        workbook = openpyxl.Workbook()
-        success = process_text_sentences(workbook, input_file_path, output_file_path)
+        # 读取章节数据
+        chapters_file = config.input_dir / "input_chapters.json"
+        if not chapters_file.exists():
+            print(f"错误: 找不到章节文件 {chapters_file}")
+            return
         
-        if success:
-            print(f"成功生成分析结果: {output_file_path}")
+        chapters = read_chapters_json(chapters_file)
+        
+        # 只处理第一个章节生成CSV文件
+        chapter = chapters[0]
+        output_file = config.output_dir_txt / "txt.csv"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        print(f"正在处理章节: {chapter.get('title', '未命名章节')}")
+        
+        if process_chapter_to_csv(chapter, output_file):
+            print(f"CSV文件已生成: {output_file}")
             return True
         else:
-            print("处理失败")
+            print("CSV文件生成失败")
             return False
-            
+        
     except Exception as e:
-        print(f"处理过程中发生错误: {e}")
+        print(f"程序执行出错: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 if __name__ == '__main__':

@@ -107,8 +107,7 @@ def clean_specific_files():
 def move_input_files():
     """将根目录的输入文件移动到input目录"""
     root_files = [
-        Path("input.txt"),
-        Path("input.docx")
+        Path("input.md")
     ]
     
     input_dir = config.input_dir

@@ -318,16 +318,14 @@ class Config:
     
     # 具体文件路径
     @property
-    def input_txt_file(self) -> Path:
-        return self.project_root / os.getenv('INPUT_TXT_FILE', 'input.txt')
+    def input_md_file(self) -> Path:
+        return self.project_root / os.getenv('INPUT_MD_FILE', 'data/input/input.md')
+    
+
     
     @property
-    def input_docx_file(self) -> Path:
-        return self.project_root / os.getenv('INPUT_DOCX_FILE', 'data/input/input.docx')
-    
-    @property
-    def output_excel_file(self) -> Path:
-        return self.project_root / os.getenv('OUTPUT_EXCEL_FILE', 'data/output/processed/txt.xlsx')
+    def output_csv_file(self) -> Path:
+        return self.project_root / os.getenv('OUTPUT_CSV_FILE', 'data/output/processed/txt.csv')
     
     @property
     def params_json_file(self) -> Path:
@@ -363,7 +361,37 @@ class Config:
             'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3', 'iso2022_jp_ext', 'hz'
         ]
         return self._get_list('ENCODING_LIST', default_encodings)
+
+    # ================================
+    # 文本分割器配置
+    # ================================
     
+    @property
+    def text_splitter_supported_input(self) -> List[str]:
+        """文本分割器支持的输入格式"""
+        return self._get_list('TEXT_SPLITTER_SUPPORTED_INPUT', ['md'])
+    
+    @property
+    def text_splitter_supported_output(self) -> List[str]:
+        """文本分割器支持的输出格式"""
+        return self._get_list('TEXT_SPLITTER_SUPPORTED_OUTPUT', ['json'])
+    
+    @property
+    def text_splitter_default_input_format(self) -> str:
+        """文本分割器默认输入格式"""
+        return os.getenv('TEXT_SPLITTER_DEFAULT_INPUT_FORMAT', 'md')
+    
+    @property
+    def text_splitter_default_output_format(self) -> str:
+        """文本分割器默认输出格式"""
+        return os.getenv('TEXT_SPLITTER_DEFAULT_OUTPUT_FORMAT', 'json')
+    
+    @property
+    def text_splitter_chapter_patterns(self) -> List[str]:
+        """文本分割器章节识别模式"""
+        default_patterns = ['# ', '## ', '### ', '第.*章', 'Chapter']
+        return self._get_list('TEXT_SPLITTER_CHAPTER_PATTERNS', default_patterns)
+
     # ================================
     # 视频生成配置
     # ================================
@@ -374,7 +402,8 @@ class Config:
     
     @property
     def video_load_subtitles(self) -> bool:
-        return self._get_bool('VIDEO_LOAD_SUBTITLES', False)
+        # 支持两种配置项名称：VIDEO_SUBTITLE 和 VIDEO_LOAD_SUBTITLES
+        return self._get_bool('VIDEO_SUBTITLE', self._get_bool('VIDEO_LOAD_SUBTITLES', False))
     
     @property
     def video_enlarge_background(self) -> bool:
@@ -391,11 +420,13 @@ class Config:
     # 字幕配置
     @property
     def subtitle_fontsize(self) -> int:
-        return self._get_int('SUBTITLE_FONTSIZE', 60)
+        # 支持两种配置项名称：SUBTITLE_SIZE 和 SUBTITLE_FONTSIZE
+        return self._get_int('SUBTITLE_SIZE', self._get_int('SUBTITLE_FONTSIZE', 60))
     
     @property
     def subtitle_fontcolor(self) -> str:
-        return os.getenv('SUBTITLE_FONTCOLOR', 'white')
+        # 支持两种配置项名称：SUBTITLE_COLOR 和 SUBTITLE_FONTCOLOR
+        return os.getenv('SUBTITLE_COLOR', os.getenv('SUBTITLE_FONTCOLOR', 'white'))
     
     @property
     def subtitle_stroke_color(self) -> str:
@@ -415,7 +446,17 @@ class Config:
     
     @property
     def subtitle_pixel_from_bottom(self) -> int:
-        return self._get_int('SUBTITLE_PIXEL_FROM_BOTTOM', 50)
+        # 如果设置了SUBTITLE_POSITION，根据位置计算像素值
+        position = os.getenv('SUBTITLE_POSITION', '').lower()
+        if position == 'bottom':
+            return 50  # 底部位置
+        elif position == 'top':
+            return -50  # 顶部位置（负值表示从顶部开始）
+        elif position == 'center':
+            return 0   # 中心位置
+        else:
+            # 使用原有的SUBTITLE_PIXEL_FROM_BOTTOM配置
+            return self._get_int('SUBTITLE_PIXEL_FROM_BOTTOM', 50)
     
     # ================================
     # 系统配置
@@ -486,7 +527,7 @@ class Config:
     def print_config_summary(self):
         """打印配置摘要"""
         print("=" * 50)
-        print("Text-to-Video Generator Configuration")
+        print("story-flow Generator Configuration")
         print("=" * 50)
         print(f"Project Root: {self.project_root}")
         print(f"LLM Provider: {self.llm_provider}")

@@ -3,8 +3,14 @@ import sys
 import json
 import base64
 import requests
-import openpyxl
+import pandas as pd
+from pathlib import Path
 from tqdm import tqdm
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from src.config import config
 
 # 发送POST请求
@@ -32,26 +38,21 @@ def save_img(b64_image, path):
         print(f"保存图片失败 {path}: {e}")
         raise
 
-# def get_prompts(path):
-#     wb = openpyxl.load_workbook(path)
-#     sheet = wb.active
-#     prompts = [cell.value for cell in sheet['C'] if cell.value]
-#     lora_param_nos = [cell.value for cell in sheet['E'] if cell.value]
-#     wb.close()
-#     return prompts, lora_param_nos
 def get_prompts(path):
-    """从Excel文件读取提示词和LoRA参数"""
+    """从CSV文件读取提示词和LoRA参数"""
     try:
-        wb = openpyxl.load_workbook(path)
-        sheet = wb.active
-        prompts = [cell.value if cell.value is not None else "" for cell in sheet['C']]
-        lora_param_nos = [cell.value if cell.value is not None else 0 for cell in sheet['E']]
-        wb.close()
+        df = pd.read_csv(path)
+        
+        # 获取提示词列（假设是第3列，索引为2）
+        prompts = df.iloc[:, 2].fillna("").tolist()
+        
+        # 获取LoRA参数列（假设是第5列，索引为4）
+        lora_param_nos = df.iloc[:, 4].fillna(0).tolist()
         
         print(f"读取到 {len(prompts)} 个提示词")
         return prompts, lora_param_nos
     except Exception as e:
-        print(f"读取Excel文件失败: {e}")
+        print(f"读取CSV文件失败: {e}")
         return [], []
 
 
@@ -81,12 +82,12 @@ def main():
     print(f"Stable Diffusion API: {url}")
     
     # 读取提示词
-    excel_file = config.output_excel_file
-    if not excel_file.exists():
-        print(f"错误: Excel文件不存在 - {excel_file}")
+    csv_file = config.output_csv_file
+    if not csv_file.exists():
+        print(f"错误: CSV文件不存在 - {csv_file}")
         return False
     
-    prompts, lora_param_nos = get_prompts(excel_file)
+    prompts, lora_param_nos = get_prompts(csv_file)
     if not prompts:
         print("错误: 未读取到任何提示词")
         return False
@@ -245,26 +246,31 @@ def interactive_regenerate(url, prompts, lora_param_nos, lora_param_dict, existi
 
 if __name__ == '__main__':
     try:
-        success = main()
+        # 检查是否为自动化模式（通过环境变量或命令行参数）
+        auto_mode = os.getenv('AUTO_MODE', 'false').lower() == 'true' or '--auto' in sys.argv
         
-        if success:
+        success = main()
+
+        if success and not auto_mode:
             print("\n是否需要重绘指定图片？")
-            # 重新读取必要的数据用于交互式重绘
-            excel_file = config.output_excel_file
-            prompts, lora_param_nos = get_prompts(excel_file)
+            
+            csv_file = config.output_csv_file
+            prompts, lora_param_nos = get_prompts(csv_file)
             lora_param_dict = config.lora_models
             output_dir = config.output_dir_image
             existing_files = set(os.listdir(output_dir))
-            
+
             api_url = config.sd_api_url
             if not api_url.endswith('/'):
                 api_url += '/'
             url = api_url + "sdapi/v1/txt2img"
-            
+
             interactive_regenerate(url, prompts, lora_param_nos, lora_param_dict, existing_files, output_dir)
-        
+        elif success and auto_mode:
+            print("\n✅ 图像生成完成（自动化模式，跳过交互式重绘）")
+
         sys.exit(0 if success else 1)
-        
+
     except KeyboardInterrupt:
         print("\n用户中断程序")
         sys.exit(1)

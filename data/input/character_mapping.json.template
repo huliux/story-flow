@@ -1,0 +1,12 @@
+[
+  {
+    "original_name": "角色原名1",
+    "new_name": "替换后角色名1",
+    "lora_id": "1"
+  },
+  {
+    "original_name": "角色原名2",
+    "new_name": "替换后角色名2",
+    "lora_id": "2"
+  }
+]

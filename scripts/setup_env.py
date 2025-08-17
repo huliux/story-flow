@@ -52,8 +52,6 @@ def check_dependencies():
         "openai", 
         "azure.cognitiveservices.speech",
         "requests",
-        "openpyxl",
-        "docx",
         "spacy",
         "tqdm",
         "moviepy",
@@ -70,8 +68,7 @@ def check_dependencies():
                 import dotenv
             elif package == "azure.cognitiveservices.speech":
                 import azure.cognitiveservices.speech
-            elif package == "docx":
-                import docx
+
             elif package == "PIL":
                 import PIL
             else:
@@ -156,7 +153,7 @@ def main():
     if deps_ok and spacy_ok and config_ok:
         print("🎉 环境设置完成！您可以开始使用系统了。")
         print("\n快速开始:")
-        print("1. 将文本文件放入input.txt")
+        print("1. 将 Markdown 文件放入 data/input/input.md")
         print("2. 运行: python src/pipeline/text_splitter.py")
         print("3. 或者直接运行: python scripts/auto_pipeline.py (全自动模式)")
     else:

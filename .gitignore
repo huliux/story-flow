@@ -129,6 +129,11 @@ data/temp/*
 !data/output/videos/.gitkeep
 !data/temp/.gitkeep
 
+# Input configuration files (use templates instead)
+data/input/character_mapping.json
+data/input/input.md
+data/input/input_chapters.json
+
 # Logs
 *.log
 

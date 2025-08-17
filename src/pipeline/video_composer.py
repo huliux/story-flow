@@ -6,9 +6,14 @@ import shutil
 import time
 import warnings
 from datetime import datetime
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
 import threading
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 # 抑制 MoviePy 的 ffmpeg_reader 警告
 warnings.filterwarnings("ignore", message=".*bytes wanted but.*bytes read.*")
@@ -73,14 +78,14 @@ def load_subtitle_data():
         return [""] * total_files
     
     try:
-        subtitle_file = subtitle_dir / 'txt.xlsx'
+        subtitle_file = subtitle_dir / 'txt.csv'
         if not subtitle_file.exists():
             print(f"警告: 字幕文件不存在 - {subtitle_file}")
             return [""] * total_files
             
-        df = pd.read_excel(subtitle_file, usecols=[0], header=None, engine='openpyxl')
-        col_name = df.columns[0]
-        subtitles = df[col_name].str.replace('\n', ' ', regex=False).tolist()
+        df = pd.read_csv(subtitle_file, header=None)
+        # 获取第一列数据，从第二行开始（跳过第一行）
+        subtitles = df.iloc[1:, 0].fillna("").astype(str).str.replace('\n', ' ', regex=False).tolist()
         
         # 确保字幕数量与图片数量匹配
         if len(subtitles) < total_files:
@@ -146,7 +151,7 @@ def create_clip(i, retry_count=0):
     txt_clip = None
     if load_subtitles and subtitle and subtitle.strip():
         try:
-            max_width = im.width * 0.8 
+            max_width = int(im.width * 0.8)
             
             # 从配置获取字幕样式参数
             fontsize = config.subtitle_fontsize
@@ -160,14 +165,22 @@ def create_clip(i, retry_count=0):
             
             size = [max_width, None]
             
-            txt_clip = TextClip(subtitle, fontsize=fontsize, color=fontcolor, stroke_color=stroke_color, 
-                                stroke_width=stroke_width, font=font, method=method, 
-                                align=align, size=size)
+            txt_clip = TextClip(text=subtitle, font_size=fontsize, color=fontcolor, stroke_color=stroke_color, 
+                                stroke_width=stroke_width, method=method, 
+                                text_align=align, size=size, font=font)
 
             # 定义字幕位置
             def calculate_position(t):
-                return ('center', im.height - pixel_from_bottom)  
-            txt_clip = txt_clip.set_pos(calculate_position).set_duration(audio_duration)
+                if pixel_from_bottom < 0:
+                    # 负值表示从顶部开始
+                    return ('center', abs(pixel_from_bottom))
+                elif pixel_from_bottom == 0:
+                    # 0表示居中
+                    return ('center', 'center')
+                else:
+                    # 正值表示从底部开始
+                    return ('center', im.height - pixel_from_bottom)
+            txt_clip = txt_clip.with_position(calculate_position).with_duration(audio_duration)
         except Exception as e:
             print(f"创建字幕失败: {e}")
             txt_clip = None
