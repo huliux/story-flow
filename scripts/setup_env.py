@@ -157,8 +157,8 @@ def main():
         print("🎉 环境设置完成！您可以开始使用系统了。")
         print("\n快速开始:")
         print("1. 将文本文件放入input.txt")
-        print("2. 运行: python step0_split_txt_to_docx.py")
-        print("3. 或者直接运行: python Auto.py (全自动模式)")
+        print("2. 运行: python src/pipeline/text_splitter.py")
+        print("3. 或者直接运行: python scripts/auto_pipeline.py (全自动模式)")
     else:
         print("⚠️  环境设置未完成，请解决上述问题后重新运行。")
         return False

@@ -78,7 +78,7 @@
 ### 方式一：全自动模式（推荐）
 
 ```bash
-python Auto.py
+python scripts/auto_pipeline.py
 ```
 
 系统将自动执行所有步骤，只在需要时提示用户交互。
@@ -87,19 +87,19 @@ python Auto.py
 
 ```bash
 # Step 0: 分割文本
-python step0_split_txt_to_docx.py
+python src/pipeline/text_splitter.py
 
 # Step 1: AI文本分析 (⚠️ 需要交互)
-python step1_extract_keywords-rolev1.1.py
+python src/pipeline/text_analyzer.py
 
 # Step 2: 生成图像
-python step2_txt_to_image-cloud-addlorav1.1.py
+python src/pipeline/image_generator.py
 
 # Step 3: 合成语音
-python step3_txt_to_voice-mstts-repairv1.0.py
+python src/pipeline/voice_synthesizer.py
 
 # Step 4: 生成视频
-python step4_output_video.py
+python src/pipeline/video_composer.py
 ```
 
 ## 🔄 Step 1 交互指南

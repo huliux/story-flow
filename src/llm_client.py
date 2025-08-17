@@ -6,7 +6,7 @@
 import openai
 import time
 from typing import List, Dict, Any, Optional
-from .config import config
+from src.config import config
 
 # 检查OpenAI库版本兼容性
 try:

@@ -3,11 +3,22 @@ import sys
 import gc
 import random
 import shutil
+import time
+import warnings
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
+import threading
+
+# 抑制 MoviePy 的 ffmpeg_reader 警告
+warnings.filterwarnings("ignore", message=".*bytes wanted but.*bytes read.*")
 from PIL import Image, ImageFilter
-from moviepy.editor import ImageSequenceClip, AudioFileClip, VideoFileClip, CompositeVideoClip, concatenate_videoclips, TextClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.audio.io.AudioFileClip import AudioFileClip
+from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+from moviepy.video.compositing.CompositeVideoClip import concatenate_videoclips
+from moviepy.video.VideoClip import TextClip
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -86,8 +97,9 @@ def load_subtitle_data():
 
 subtitles = load_subtitle_data()
 
-def create_clip(i):
+def create_clip(i, retry_count=0):
     """创建单个视频片段"""
+    max_retries = 2  # 最大重试次数
     filename = f'output_{i+1}.png'
     audio_filename_mp3 = f'output_{i+1}.mp3'
     audio_filename_wav = f'output_{i+1}.wav'
@@ -213,13 +225,13 @@ def create_clip(i):
 
     # 设置音频
     if audio:
-        img_foreground = img_foreground.set_audio(audio)
+        img_foreground = img_foreground.with_audio(audio)
 
     # 组合视频片段
     if load_subtitles and txt_clip:
-        final_clip = CompositeVideoClip([img_background.set_position("center"), img_foreground.set_position("center"), txt_clip], size=img_blur.size)
+        final_clip = CompositeVideoClip([img_background.with_position("center"), img_foreground.with_position("center"), txt_clip], size=img_blur.size)
     else:
-        final_clip = CompositeVideoClip([img_background.set_position("center"), img_foreground.set_position("center")], size=img_blur.size)
+        final_clip = CompositeVideoClip([img_background.with_position("center"), img_foreground.with_position("center")], size=img_blur.size)
        
     # 应用特效
     if enable_effect:
@@ -245,9 +257,59 @@ def create_clip(i):
 
     # 生成视频片段
     try:
-        final_clip.write_videofile(str(temp_filename), logger=None, audio_codec='aac')
+        # 使用更稳定的编码参数
+        final_clip.write_videofile(
+            str(temp_filename), 
+            logger=None, 
+            audio_codec='aac',
+            codec='libx264',
+            preset='slow',  # 更保守的预设，确保质量
+            ffmpeg_params=[
+                '-pix_fmt', 'yuv420p',
+                '-crf', '18',  # 更高质量
+                '-profile:v', 'baseline',  # 基线配置，最大兼容性
+                '-level', '3.0',  # 兼容性级别
+                '-movflags', '+faststart',  # 优化流媒体
+                '-strict', 'experimental'  # 允许实验性编码器
+            ]
+        )
+        
+        # 短暂延迟确保文件写入完成
+        time.sleep(0.2)
+        
+        # 验证生成的文件
+        if not temp_filename.exists() or temp_filename.stat().st_size == 0:
+            print(f"警告: 视频片段 {i+1} 生成的文件无效")
+            return None
+            
+        # 验证文件可以被 MoviePy 正确读取
+        try:
+            test_clip = VideoFileClip(str(temp_filename))
+            if test_clip.duration <= 0:
+                print(f"警告: 视频片段 {i+1} 时长无效")
+                test_clip.close()
+                return None
+            test_clip.close()
+        except Exception as e:
+            print(f"警告: 视频片段 {i+1} 无法正确读取: {e}")
+            # 删除损坏的文件并重试
+            if temp_filename.exists():
+                temp_filename.unlink()
+            if retry_count < max_retries:
+                print(f"重试生成视频片段 {i+1} (第 {retry_count + 1} 次重试)")
+                time.sleep(0.5)  # 短暂延迟后重试
+                return create_clip(i, retry_count + 1)
+            return None
+            
     except Exception as e:
         print(f"生成视频片段 {i+1} 失败: {e}")
+        # 删除可能存在的不完整文件并重试
+        if temp_filename.exists():
+            temp_filename.unlink()
+        if retry_count < max_retries:
+            print(f"重试生成视频片段 {i+1} (第 {retry_count + 1} 次重试)")
+            time.sleep(0.5)  # 短暂延迟后重试
+            return create_clip(i, retry_count + 1)
         return None
 
     # 清理内存
@@ -258,9 +320,13 @@ def create_clip(i):
 
 def main():
     """主函数：执行视频合成"""
-    max_workers = config.max_workers_video
+    # 为了避免文件冲突，适当降低并发数
+    original_max_workers = config.max_workers_video
+    max_workers = min(original_max_workers, 3)  # 限制最大并发数为3
     
-    print(f"开始生成 {total_files} 个视频片段（并发数: {max_workers}）...")
+    print(f"开始生成 {total_files} 个视频片段（并发数: {max_workers}，原配置: {original_max_workers}）...")
+    if max_workers < original_max_workers:
+        print(f"为提高稳定性，已将并发数从 {original_max_workers} 调整为 {max_workers}")
     
     temp_filenames = []
     failed_count = 0
@@ -300,8 +366,18 @@ def main():
         clips = []
         for filename in temp_filenames:
             try:
+                # 验证文件完整性
+                if not os.path.exists(filename) or os.path.getsize(filename) == 0:
+                    print(f"跳过无效的视频文件: {filename}")
+                    continue
+                    
                 clip = VideoFileClip(filename)
-                clips.append(clip)
+                # 验证视频片段是否有效
+                if clip.duration > 0:
+                    clips.append(clip)
+                else:
+                    print(f"跳过时长为0的视频片段: {filename}")
+                    clip.close()
             except Exception as e:
                 print(f"加载视频片段失败 {filename}: {e}")
 
@@ -316,7 +392,21 @@ def main():
         final_filename = video_dir / f'output_{timestamp}.mp4'
         
         print(f"正在输出最终视频: {final_filename}")
-        final_video.write_videofile(str(final_filename), logger=None, audio_codec='aac')
+        final_video.write_videofile(
+            str(final_filename), 
+            logger=None, 
+            audio_codec='aac',
+            codec='libx264',
+            preset='slow',  # 更保守的预设，确保质量
+            ffmpeg_params=[
+                '-pix_fmt', 'yuv420p',
+                '-crf', '18',  # 更高质量
+                '-profile:v', 'baseline',  # 基线配置，最大兼容性
+                '-level', '3.0',  # 兼容性级别
+                '-movflags', '+faststart',  # 优化流媒体
+                '-strict', 'experimental'  # 允许实验性编码器
+            ]
+        )
         
         # 清理资源
         for clip in clips:

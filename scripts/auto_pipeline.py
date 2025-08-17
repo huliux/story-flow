@@ -27,14 +27,14 @@ if assert_warning_exists():
 # 获取脚本目录和配置
 script_dir = Path(__file__).parent.absolute()
 
-# 定义脚本列表（使用实际的文件名）
+# 定义模块列表（使用模块导入方式）
 project_root = script_dir.parent
-scripts = [
-    project_root / 'src/pipeline/text_splitter.py',
-    project_root / 'src/pipeline/text_analyzer.py',
-    project_root / 'src/pipeline/image_generator.py',
-    project_root / 'src/pipeline/voice_synthesizer.py',
-    project_root / 'src/pipeline/video_composer.py'
+modules = [
+    'src.pipeline.text_splitter',
+    'src.pipeline.text_analyzer',
+    'src.pipeline.image_generator',
+    'src.pipeline.voice_synthesizer',
+    'src.pipeline.video_composer'
 ]
 
 # 使用配置文件中的路径
@@ -52,23 +52,17 @@ print(f"  Python解释器: {python_executable}")
 def run_pipeline():
     """运行完整的处理流水线"""
     try:
-        # 检查所有脚本是否存在
-        missing_scripts = [script for script in scripts if not script.exists()]
-        if missing_scripts:
-            print("错误: 以下脚本文件不存在:")
-            for script in missing_scripts:
-                print(f"  - {script}")
-            return False
-
         # 运行每个步骤
-        for i, script in enumerate(scripts, 1):
-            print(f'\n=== 步骤 {i}: 运行 {script.name} ===')
+        for i, module in enumerate(modules, 1):
+            print(f'\n=== 步骤 {i}: 运行 {module} ===')
             
             try:
+                # 使用模块方式运行，避免导入问题
                 result = subprocess.run(
-                    [python_executable, str(script)], 
+                    [python_executable, '-m', module], 
                     capture_output=False,
-                    check=True
+                    check=True,
+                    cwd=project_root  # 设置工作目录为项目根目录
                 )
                 print(f'步骤 {i} 完成')
             except subprocess.CalledProcessError as e:
