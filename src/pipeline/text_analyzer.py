@@ -2,8 +2,6 @@ import os
 import sys
 import json
 import re
-import spacy
-import time
 from pathlib import Path
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -16,26 +14,19 @@ sys.path.insert(0, str(project_root))
 from src.config import config
 from src.llm_client import llm_client
 
-# 验证LLM配置
-provider_info = llm_client.get_provider_info()
-if not provider_info['has_api_key']:
-    print(f"错误: 未配置{provider_info['provider']} API密钥")
-    if config.llm_provider == 'openai':
-        print("请在.env文件中设置OPENAI_API_KEY")
-    elif config.llm_provider == 'deepseek':
-        print("请在.env文件中设置DEEPSEEK_API_KEY")
-    sys.exit(1)
+# 将验证代码移到main函数中执行，避免在导入时执行
+# provider_info = llm_client.get_provider_info()
+# if not provider_info['has_api_key']:
+#     print(f"错误: 未配置{provider_info['provider']} API密钥")
+#     if config.llm_provider == 'openai':
+#         print("请在.env文件中设置OPENAI_API_KEY")
+#     elif config.llm_provider == 'deepseek':
+#         print("请在.env文件中设置DEEPSEEK_API_KEY")
+#     sys.exit(1)
+# 
+# print(f"✅ 使用 {provider_info['provider']} - {provider_info['model']}")
 
-print(f"✅ 使用 {provider_info['provider']} - {provider_info['model']}")
-
-# 加载 Spacy 的中文模型，用于句子的分割
-try:
-    nlp = spacy.load('zh_core_web_sm')
-    print("✅ 已加载中文spaCy模型")
-except OSError:
-    print("⚠️  警告: 未安装中文spaCy模型，将使用简单的句子分割方法")
-    print("   如需完整功能，请运行: uv add https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.7.0/zh_core_web_sm-3.7.0-py3-none-any.whl")
-    nlp = None
+# 使用正则表达式进行中文句子分割，零依赖，性能最佳
 
 
 # 定义一个函数，将字符数少于设定值的句子进行合并
@@ -71,8 +62,8 @@ def translate_to_english(text):
 def translate_to_storyboard(text):
     """将文本翻译为分镜脚本"""
     messages = [
-        {"role": "system", "content": "You are a professional storyboard assistant."},
-        {"role": "user", "content": f"Based on the text \"{text}\", 基于我给的文本，在提示的生成中，您需要使用提示词来描述角色属性、主题、外表、情感、服装、姿势、视角、行动、背景。使用英语单词或短语甚至自然语言标签进行描述不仅限于我给你的单词。每次生成一组提示词，提示词应该使用英语词组或简短的句子，每组不能大于75个token。然后将您想要的类似提示词组合在一起，使用英语半角作为分隔符，并按从最重要到最不重要的顺序排列。在角色属性中，1girl表示你生成了一个女孩，1boy表示你生成了一个男孩，人数可以是多个。另请注意，提示不能包含-和_。可以有空格和自然语言，但不能太多，单词不能重复。包括角色的性别、主题、外表、情感、服装、姿势、视角、行动、背景，并按从最重要到最不重要的顺序排列，越靠前的词组权重越大；可以使用括号+数字表示增加或减少权重，例如 (depth effect:1.16)，数字的范围是0-2，大于1表示增加权重，小于1表示减少权重，权重一般不超过1.5； 需要优先表现的提示词才可以增加权重，且增加权重的提示词不超过3个；优先级定义：性别>情感>外表>服装>主题>姿势>主题>行动>视角>背景>其它。我会给出一些结构示例 :1boy, club setting, daily routine, viewing others, 1girl, 18 years old, (long red hair:1.5), (casual clothing:1.2), (standing pose:1.1), side view, nightlife background。提示单词应以纯文本输出，不需要有任何解释或示例，不加引号。不要回答不必要的内容，不要问我，也不要给我举例。"},
+        {"role": "system", "content": "You are an expert Stable Diffusion prompt engineer with deep understanding of visual storytelling and character consistency. Your role is to transform narrative text into precise, high-quality prompts that maintain character continuity and scene coherence throughout a story. You excel at balancing technical SD syntax with artistic vision, ensuring each prompt captures both the explicit details and implicit emotional undertones of the source material. You prioritize character consistency, emotional authenticity, and visual storytelling flow."},
+        {"role": "user", "content": f"Transform this narrative text into a Stable Diffusion prompt: \"{text}\"\n\n**Technical Specifications:**\n- Output: Single line, comma-separated elements\n- Token limit: 75 tokens maximum\n- Syntax: English words/phrases, no hyphens or underscores\n- Weighting: Use (element:1.0-1.5) for emphasis, limit to 3 weighted elements\n- Character format: 1girl, 1boy, 2girls, etc.\n\n**Element Priority (arrange left to right):**\n1. Character count/gender → 2. Core emotion/expression → 3. Key physical traits → 4. Clothing/style → 5. Scene/setting → 6. Pose/action → 7. Camera angle → 8. Environment details → 9. Art style/quality\n\n**Context Awareness Guidelines:**\n- Maintain character consistency with established traits\n- Reflect the emotional tone and narrative context\n- Consider scene continuity and story progression\n- Balance explicit details with implied atmosphere\n\n**Quality Standards:**\n- Prioritize visual storytelling over technical perfection\n- Ensure prompt clarity and SD compatibility\n- Avoid redundancy while maintaining descriptive richness\n\nGenerate the optimized prompt:"},
     ]
     return llm_client.chat_completion(messages)
 
@@ -152,8 +143,20 @@ def process_single_chapter_csv(chapter, output_file_path):
         content = chapter.get('content', '')
         # 移除Markdown标题标记
         content = re.sub(r'^#+\s*', '', content, flags=re.MULTILINE)
-        # 按句子分割
-        chapter_sentences = re.findall('.*?[。！？]', content)
+        # 按句子分割 - 使用优化的正则表达式，零依赖，性能最佳
+        chapter_sentences = re.findall('[^。！？]*[。！？]', content)
+        
+        # 处理边界情况：文本末尾没有标点符号的情况
+        last_match_end = 0
+        for match in re.finditer('[^。！？]*[。！？]', content):
+            last_match_end = match.end()
+        
+        # 如果有剩余文本（末尾没有标点符号），添加到句子列表中
+        if last_match_end < len(content):
+            remaining_text = content[last_match_end:].strip()
+            if remaining_text:
+                chapter_sentences.append(remaining_text)
+        
         sentences.extend(chapter_sentences)
 
         sentences = merge_short_sentences(sentences)  

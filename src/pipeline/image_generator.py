@@ -114,14 +114,26 @@ def main():
             continue
             
         # 获取LoRA参数
+        # 当CSV中没有LoRA编号或为空时，默认使用0（LORA_MODEL_0）
         lora_param_no = int(lora_param_no) if lora_param_no else 0
         lora_param = lora_param_dict.get(lora_param_no, "")
         
+        # 获取用户自定义风格参数
+        style_param = config.sd_style.strip() if config.sd_style else ""
+        
         # 构建完整提示词
+        prompt_parts = ["masterpiece,(best quality)", prompt_b]
+        
         if lora_param:
-            prompt = f"masterpiece,(best quality),{prompt_b},{lora_param}"
-        else:
-            prompt = f"masterpiece,(best quality),{prompt_b}"
+            prompt_parts.append(lora_param)
+        
+        if style_param:
+            prompt_parts.append(style_param)
+        
+        prompt = ",".join(prompt_parts)
+        
+        # 打印最终提示词
+        print(f"\n🎨 图片 {i+1} prompt: {prompt}")
             
         output_file = f'output_{i+1}.png'
         output_path = output_dir / output_file
@@ -196,19 +208,42 @@ def interactive_regenerate(url, prompts, lora_param_nos, lora_param_dict, existi
                         redo_lora_param_no = lora_param_nos[img_index]
 
                         # 用户可选择修改LoRA参数
-                        lora_param_change = input("修改LoRA（删除输入'noLora'，直接回车保持默认）：")
-                        if lora_param_change.lower() == 'nolora':
+                        lora_param_change = input("修改LoRA（删除输入'n'，数字加载对应配置，直接回车保持默认）：")
+                        if lora_param_change.lower() == 'n':
                             lora_param = ""
                         elif lora_param_change.strip():
-                            lora_param = lora_param_change
+                            # 检查输入是否为数字，如果是则从配置中加载对应的LoRA
+                            if lora_param_change.strip().isdigit():
+                                lora_model_no = int(lora_param_change.strip())
+                                lora_param = lora_param_dict.get(lora_model_no, "")
+                                if lora_param:
+                                    tqdm.write(f"已加载LoRA模型 {lora_model_no}: {lora_param}")
+                                else:
+                                    tqdm.write(f"警告: LoRA模型 {lora_model_no} 未配置")
+                            else:
+                                # 直接使用用户输入的字符串作为LoRA参数
+                                lora_param = lora_param_change
                         else:
-                            lora_param = lora_param_dict.get(int(redo_lora_param_no), "")
+                            # 当CSV中没有LoRA编号或为空时，默认使用0（LORA_MODEL_0）
+                            lora_param_no = int(redo_lora_param_no) if redo_lora_param_no else 0
+                            lora_param = lora_param_dict.get(lora_param_no, "")
+                        
+                        # 获取用户自定义风格参数
+                        style_param = config.sd_style.strip() if config.sd_style else ""
                         
                         # 构建提示词
+                        prompt_parts = ["masterpiece,(best quality)", prompt_b]
+                        
                         if lora_param:
-                            prompt = f"masterpiece,(best quality),{prompt_b},{lora_param}"
-                        else:
-                            prompt = f"masterpiece,(best quality),{prompt_b}"
+                            prompt_parts.append(lora_param)
+                        
+                        if style_param:
+                            prompt_parts.append(style_param)
+                        
+                        prompt = ",".join(prompt_parts)
+                        
+                        # 打印最终提示词
+                        tqdm.write(f"🎨 重绘图片 {redo_img_no} 最终提示词: {prompt}")
                             
                         # 生成图片
                         data = generate_data(prompt)

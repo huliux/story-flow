@@ -47,12 +47,13 @@ enlarge_background = config.video_enlarge_background
 enable_effect = config.video_enable_effect
 effect_type = config.video_effect_type
 
-print(f"Step 4: 视频合成")
-print(f"配置信息:")
-print(f"  FPS: {fps}")
-print(f"  字幕: {'启用' if load_subtitles else '禁用'}")
-print(f"  背景效果: {'启用' if enlarge_background else '禁用'}")
-print(f"  特效: {'启用' if enable_effect else '禁用'} ({effect_type if enable_effect else 'N/A'})")
+# 移到main函数中执行，避免在导入时打印
+# print(f"Step 4: 视频合成")
+# print(f"配置信息:")
+# print(f"  FPS: {fps}")
+# print(f"  字幕: {'启用' if load_subtitles else '禁用'}")
+# print(f"  背景效果: {'启用' if enlarge_background else '禁用'}")
+# print(f"  特效: {'启用' if enable_effect else '禁用'} ({effect_type if enable_effect else 'N/A'})")
 
 # 获取文件总数
 def get_total_files():
@@ -64,24 +65,30 @@ def get_total_files():
         print(f"获取图片文件列表失败: {e}")
         return 0
 
-total_files = get_total_files()
-print(f"发现 {total_files} 个图片文件")
-
-if total_files == 0:
-    print("错误: 未找到任何图片文件")
-    sys.exit(1)
+# 将这些代码移到main函数中执行，避免在导入时执行
+# total_files = get_total_files()
+# print(f"发现 {total_files} 个图片文件")
+# 
+# if total_files == 0:
+#     print("错误: 未找到任何图片文件")
+#     sys.exit(1)
 
 # 读取字幕
-def load_subtitle_data():
+def load_subtitle_data(total_files):
     """加载字幕数据"""
+    # 检查字幕功能是否启用
     if not load_subtitles:
-        return [""] * total_files
+        print(f"字幕功能已禁用 (VIDEO_SUBTITLE={load_subtitles})")
+        return [""]*total_files
+    
+    print(f"字幕功能已启用 (VIDEO_SUBTITLE={load_subtitles})")
     
     try:
         subtitle_file = subtitle_dir / 'txt.csv'
         if not subtitle_file.exists():
             print(f"警告: 字幕文件不存在 - {subtitle_file}")
-            return [""] * total_files
+            print("提示: 请确保文本分析步骤已完成并生成了字幕文件")
+            return [""]*total_files
             
         df = pd.read_csv(subtitle_file, header=None)
         # 获取第一列数据，从第二行开始（跳过第一行）
@@ -89,20 +96,23 @@ def load_subtitle_data():
         
         # 确保字幕数量与图片数量匹配
         if len(subtitles) < total_files:
-            subtitles.extend([""] * (total_files - len(subtitles)))
+            print(f"警告: 字幕数量({len(subtitles)}) 少于图片数量({total_files})，将用空字幕补齐")
+            subtitles.extend([""]*(total_files - len(subtitles)))
         elif len(subtitles) > total_files:
+            print(f"警告: 字幕数量({len(subtitles)}) 多于图片数量({total_files})，将截取前{total_files}条")
             subtitles = subtitles[:total_files]
             
-        print(f"加载了 {len(subtitles)} 条字幕")
+        print(f"成功加载了 {len(subtitles)} 条字幕")
         return subtitles
         
     except Exception as e:
         print(f"加载字幕失败: {e}，将使用空字幕")
-        return [""] * total_files
+        print("提示: 请检查字幕文件格式是否正确")
+        return [""]*total_files
 
-subtitles = load_subtitle_data()
+# subtitles = load_subtitle_data()  # 移到main函数中执行
 
-def create_clip(i, retry_count=0):
+def create_clip(i, subtitles, retry_count=0):
     """创建单个视频片段"""
     max_retries = 2  # 最大重试次数
     filename = f'output_{i+1}.png'
@@ -154,7 +164,7 @@ def create_clip(i, retry_count=0):
             max_width = int(im.width * 0.8)
             
             # 从配置获取字幕样式参数
-            fontsize = config.subtitle_fontsize
+            base_fontsize = config.subtitle_fontsize
             fontcolor = config.subtitle_fontcolor
             stroke_color = config.subtitle_stroke_color
             stroke_width = config.subtitle_stroke_width
@@ -163,7 +173,31 @@ def create_clip(i, retry_count=0):
             align = config.subtitle_align
             pixel_from_bottom = config.subtitle_pixel_from_bottom
             
+            # 动态计算字体大小，防止长字幕被截断
+            def get_dynamic_fontsize(subtitle_text, base_fontsize):
+                """根据字幕长度动态计算字体大小"""
+                char_count = len(subtitle_text)
+                
+                if char_count <= 30:
+                    return base_fontsize
+                elif char_count <= 60:
+                    return max(32, base_fontsize - 8)
+                elif char_count <= 90:
+                    return max(28, base_fontsize - 12)
+                else:
+                    return max(24, base_fontsize - 16)
+            
+            fontsize = get_dynamic_fontsize(subtitle, base_fontsize)
             size = [max_width, None]
+            
+            # 验证字幕配置参数
+            if fontsize <= 0:
+                print(f"警告: 字幕字体大小无效 ({fontsize})，使用默认值 60")
+                fontsize = 60
+            
+            # 输出字幕调试信息
+            if len(subtitle) > 30:
+                print(f"长字幕检测: 字符数={len(subtitle)}, 调整字体大小 {base_fontsize}→{fontsize}")
             
             txt_clip = TextClip(text=subtitle, font_size=fontsize, color=fontcolor, stroke_color=stroke_color, 
                                 stroke_width=stroke_width, method=method, 
@@ -181,9 +215,15 @@ def create_clip(i, retry_count=0):
                     # 正值表示从底部开始
                     return ('center', im.height - pixel_from_bottom)
             txt_clip = txt_clip.with_position(calculate_position).with_duration(audio_duration)
+            
         except Exception as e:
             print(f"创建字幕失败: {e}")
+            print(f"字幕内容: {subtitle[:50]}..." if len(subtitle) > 50 else f"字幕内容: {subtitle}")
+            print("提示: 请检查字幕配置参数和字体文件是否正确")
             txt_clip = None
+    elif load_subtitles and not subtitle.strip():
+        # 字幕功能启用但当前片段无字幕内容
+        pass
 
     # 计算Ken Burns效果参数
     x_speed = (im.width - im.width * 9 / 10) / audio_duration
@@ -311,7 +351,7 @@ def create_clip(i, retry_count=0):
             if retry_count < max_retries:
                 print(f"重试生成视频片段 {i+1} (第 {retry_count + 1} 次重试)")
                 time.sleep(0.5)  # 短暂延迟后重试
-                return create_clip(i, retry_count + 1)
+                return create_clip(i, subtitles, retry_count + 1)
             return None
             
     except Exception as e:
@@ -322,7 +362,7 @@ def create_clip(i, retry_count=0):
         if retry_count < max_retries:
             print(f"重试生成视频片段 {i+1} (第 {retry_count + 1} 次重试)")
             time.sleep(0.5)  # 短暂延迟后重试
-            return create_clip(i, retry_count + 1)
+            return create_clip(i, subtitles, retry_count + 1)
         return None
 
     # 清理内存
@@ -333,6 +373,30 @@ def create_clip(i, retry_count=0):
 
 def main():
     """主函数：执行视频合成"""
+    # 打印配置信息
+    print(f"Step 4: 视频合成")
+    print(f"配置信息:")
+    print(f"  FPS: {fps}")
+    print(f"  字幕: {'启用' if load_subtitles else '禁用'}")
+    if load_subtitles:
+        print(f"    - 字体大小: {config.subtitle_fontsize}")
+        print(f"    - 字体颜色: {config.subtitle_fontcolor}")
+        print(f"    - 字体: {config.subtitle_font}")
+        print(f"    - 对齐方式: {config.subtitle_align}")
+        print(f"    - 位置: {config.subtitle_pixel_from_bottom} 像素")
+    print(f"  背景效果: {'启用' if enlarge_background else '禁用'}")
+    print(f"  特效: {'启用' if enable_effect else '禁用'} ({effect_type if enable_effect else 'N/A'})")
+    
+    # 初始化文件计数和字幕数据
+    total_files = get_total_files()
+    print(f"发现 {total_files} 个图片文件")
+    
+    if total_files == 0:
+        print("错误: 未找到任何图片文件")
+        return False
+    
+    subtitles = load_subtitle_data(total_files)
+    
     # 为了避免文件冲突，适当降低并发数
     original_max_workers = config.max_workers_video
     max_workers = min(original_max_workers, 3)  # 限制最大并发数为3
@@ -346,7 +410,7 @@ def main():
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         pbar = tqdm(total=total_files, ncols=None, desc="正在生成视频片段")
-        futures = {executor.submit(create_clip, i): i for i in range(total_files)}
+        futures = {executor.submit(create_clip, i, subtitles): i for i in range(total_files)}
 
         for future in concurrent.futures.as_completed(futures):
             i = futures[future]

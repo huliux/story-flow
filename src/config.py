@@ -205,15 +205,15 @@ class Config:
     
     @property
     def sd_denoising_strength(self) -> float:
-        return self._get_float('SD_DENOISING_STRENGTH', 0.4)
+        return self._get_float('SD_DENOISING_STRENGTH', 0.5)
     
     @property
     def sd_firstphase_width(self) -> int:
-        return self._get_int('SD_FIRSTPHASE_WIDTH', 680)
+        return self._get_int('SD_FIRSTPHASE_WIDTH', 960)
     
     @property
     def sd_firstphase_height(self) -> int:
-        return self._get_int('SD_FIRSTPHASE_HEIGHT', 512)
+        return self._get_int('SD_FIRSTPHASE_HEIGHT', 540)
     
     @property
     def sd_hr_scale(self) -> int:
@@ -221,7 +221,7 @@ class Config:
     
     @property
     def sd_hr_upscaler(self) -> str:
-        return os.getenv('SD_HR_UPSCALER', 'R-ESRGAN 4x+ Anime6B')
+        return os.getenv('SD_HR_UPSCALER', '4x-UltraSharp')
     
     @property
     def sd_hr_second_pass_steps(self) -> int:
@@ -229,11 +229,11 @@ class Config:
     
     @property
     def sd_hr_resize_x(self) -> int:
-        return self._get_int('SD_HR_RESIZE_X', 1360)
+        return self._get_int('SD_HR_RESIZE_X', 1920)
     
     @property
     def sd_hr_resize_y(self) -> int:
-        return self._get_int('SD_HR_RESIZE_Y', 1024)
+        return self._get_int('SD_HR_RESIZE_Y', 1080)
     
     @property
     def sd_seed(self) -> int:
@@ -241,7 +241,7 @@ class Config:
     
     @property
     def sd_sampler_name(self) -> str:
-        return os.getenv('SD_SAMPLER_NAME', 'Euler a')
+        return os.getenv('SD_SAMPLER_NAME', 'DPM++ 2M Karras')
     
     @property
     def sd_batch_size(self) -> int:
@@ -249,7 +249,7 @@ class Config:
     
     @property
     def sd_steps(self) -> int:
-        return self._get_int('SD_STEPS', 30)
+        return self._get_int('SD_STEPS', 20)
     
     @property
     def sd_cfg_scale(self) -> float:
@@ -257,7 +257,7 @@ class Config:
     
     @property
     def sd_restore_faces(self) -> bool:
-        return self._get_bool('SD_RESTORE_FACES', True)
+        return self._get_bool('SD_RESTORE_FACES', False)
     
     @property
     def sd_tiling(self) -> bool:
@@ -266,13 +266,32 @@ class Config:
     @property
     def sd_negative_prompt(self) -> str:
         """固定的负面提示词"""
-        return ("NSFW, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality,"
-                "((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, age spot, (ugly:1.331),"
-                "(duplicate:1.331), (morbid:1.21), (mutilated: 1.21), (tranny:1.331), mutated hands, "
-                "(poorly drawnhands:1.5), blurry, (bad anatomy: 1.21), (bad proportions:1.331), extra limbs, "
-                "(disfigured:1.331),(missing arms:1.331), (extra legs:1.331), (fused fingers: 1.61051), "
-                "(too many fingers:1.61051),(unclear eyes:1.331), lowers, bad hands, missing fingers, extra digit,"
-                "bad hands, missing fingers,(((extra arms and legs)))")
+        return os.getenv('SD_NEGATIVE_PROMPT', 
+                        "NSFW,extra fingers, ugly, photorealistic, 3d, monochrome, distorted face, bad anatomy, writing, words, blurry, haze, unfocused, cropped, extra limbs, unfinished, jpg artifacts,lowres, bad anatomy, bad hands,mutation,mutated,((text)), (error),(((watermark))),((logo)),(((username))),(((font))),((signature)), missing fingers,extra digit, fewer digits, cropped, worst quality, low quality,normal quality, jpeg artifacts, signature, watermark, username, blurry,book")
+
+    @property
+    def sd_style(self) -> str:
+        """用户自定义的图像风格参数，将被附加到提示词中"""
+        return os.getenv('SD_STYLE', '')
+    
+    # ================================
+    # ADetailer配置
+    # ================================
+    
+    @property
+    def sd_adetailer_enabled(self) -> bool:
+        """是否启用ADetailer"""
+        return self._get_bool('SD_ADETAILER_ENABLED', True)
+    
+    @property
+    def sd_adetailer_face_model(self) -> str:
+        """ADetailer面部检测模型"""
+        return os.getenv('SD_ADETAILER_FACE_MODEL', 'face_yolov8n.pt')
+    
+    @property
+    def sd_adetailer_hand_model(self) -> str:
+        """ADetailer手部检测模型"""
+        return os.getenv('SD_ADETAILER_HAND_MODEL', 'hand_yolov8n.pt')
     
     # ================================
     # LoRA模型配置
@@ -447,16 +466,25 @@ class Config:
     @property
     def subtitle_pixel_from_bottom(self) -> int:
         # 如果设置了SUBTITLE_POSITION，根据位置计算像素值
-        position = os.getenv('SUBTITLE_POSITION', '').lower()
-        if position == 'bottom':
-            return 50  # 底部位置
-        elif position == 'top':
-            return -50  # 顶部位置（负值表示从顶部开始）
-        elif position == 'center':
-            return 0   # 中心位置
-        else:
-            # 使用原有的SUBTITLE_PIXEL_FROM_BOTTOM配置
-            return self._get_int('SUBTITLE_PIXEL_FROM_BOTTOM', 50)
+        position_str = os.getenv('SUBTITLE_POSITION', '')
+        
+        # 首先尝试将SUBTITLE_POSITION解析为数字
+        if position_str:
+            try:
+                # 如果是数字，直接返回
+                return int(position_str)
+            except ValueError:
+                # 如果不是数字，按字符串处理
+                position = position_str.lower()
+                if position == 'bottom':
+                    return 50  # 底部位置
+                elif position == 'top':
+                    return -50  # 顶部位置（负值表示从顶部开始）
+                elif position == 'center':
+                    return 0   # 中心位置
+        
+        # 使用原有的SUBTITLE_PIXEL_FROM_BOTTOM配置
+        return self._get_int('SUBTITLE_PIXEL_FROM_BOTTOM', 50)
     
     # ================================
     # 系统配置
@@ -503,7 +531,7 @@ class Config:
     
     def get_sd_generation_data(self, prompt: str) -> Dict:
         """生成Stable Diffusion API请求数据"""
-        return {
+        data = {
             "enable_hr": self.sd_enable_hr,
             "denoising_strength": self.sd_denoising_strength,
             "firstphase_width": self.sd_firstphase_width,
@@ -523,6 +551,20 @@ class Config:
             "tiling": self.sd_tiling,
             "negative_prompt": self.sd_negative_prompt
         }
+        
+        # 添加ADetailer配置
+        if self.sd_adetailer_enabled:
+            data["alwayson_scripts"] = {
+                "ADetailer": {
+                    "args": [
+                        {"ad_model": self.sd_adetailer_face_model},
+                        {"ad_model": self.sd_adetailer_hand_model},
+                        {}
+                    ]
+                }
+            }
+        
+        return data
     
     def print_config_summary(self):
         """打印配置摘要"""

@@ -1,10 +1,11 @@
 # 📺 Story Flow - AI文本到视频生成系统
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-blue.svg)](https://github.com/astral-sh/uv)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-0.1.0-orange.svg)](https://github.com/story-flow/story-flow)
 
-一个强大的AI驱动文本到视频生成系统，能够将小说、故事等文本内容自动转换为包含AI生成图像、真实语音合成和精美字幕的完整视频作品。
+一个强大的AI驱动文本到视频生成系统，能够将小说、故事等文本内容自动转换为包含AI生成图像、真实语音合成和精美字幕的完整视频作品。使用现代化的uv包管理器，提供快速、可靠的依赖管理体验。
 
 ## 🎯 项目亮点
 
@@ -17,10 +18,10 @@
 ## ✨ 核心特性
 
 ### 🧠 智能文本处理
-- **多LLM支持** - OpenAI GPT-3.5/4 / DeepSeek (性价比更高)
+- **多LLM支持** - OpenAI GPT-3.5/4 / DeepSeek
 - **智能分段** - 自动识别章节和段落结构
 - **内容分析** - AI理解文本内容并生成描述
-- **角色名替换** - 支持自定义角色名映射和LoRA编号
+- **角色名替换** - 支持自定义角色名和LoRA模型映射
 - **多语言支持** - 支持中英文内容处理
 
 ### 🎨 AI图像生成
@@ -48,8 +49,8 @@
 - **Python**: 3.10 或更高版本
 - **操作系统**: Windows 10+, macOS 10.15+, Ubuntu 18.04+
 - **内存**: 建议 8GB 以上
-- **存储**: 至少 2GB 可用空间
-- **网络**: 稳定的互联网连接（用于AI服务调用）
+- **存储**: 至少 2GB 可用空间（包含spaCy中文模型）
+- **网络**: 稳定的互联网连接（用于AI服务调用和模型下载）
 
 ### 🛠️ 安装步骤
 
@@ -67,11 +68,9 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # 创建虚拟环境并安装依赖
 uv sync
 
-# 或使用传统方式（不推荐）
-python -m venv .venv
+# 激活虚拟环境（可选，uv run 会自动激活）
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate  # Windows
-# 注意：本项目使用 uv 管理依赖，建议使用上述 uv 方式
 ```
 
 #### 3. 配置API服务
@@ -85,12 +84,14 @@ nano .env  # 或使用你喜欢的编辑器
 
 #### 4. 验证安装
 ```bash
-# 运行环境检查
-uv run python scripts/setup_env.py
+# 运行环境设置脚本（自动检查和配置环境）
+./setup.sh
 
 # 测试LLM连接
-uv run python scripts/test_llm.py
+uv run python -m src.pipeline.text_analyzer --test
 ```
+
+> **📝 注意**: `setup.sh` 脚本会自动安装和配置所有必需的依赖。如果遇到安装问题，脚本会提供详细的错误信息和解决建议。
 
 ### 🎬 开始创作
 
@@ -117,19 +118,16 @@ python main.py --help
 #### 方式二：分步执行
 ```bash
 # 1. 文本分析和分段
-uv run python src/pipeline/text_splitter.py
+uv run python -m src.pipeline.text_analyzer
 
-# 2. 内容分析和翻译
-uv run python src/pipeline/text_analyzer.py
+# 2. 生成图像
+uv run python -m src.pipeline.image_generator
 
-# 3. 生成图像
-uv run python src/pipeline/image_generator.py
+# 3. 语音合成
+uv run python -m src.pipeline.voice_synthesizer
 
-# 4. 语音合成
-uv run python src/pipeline/voice_synthesizer.py
-
-# 5. 视频合成
-uv run python src/pipeline/video_composer.py
+# 4. 视频合成
+uv run python -m src.pipeline.video_composer
 ```
 
 
@@ -150,7 +148,7 @@ uv run python src/pipeline/video_composer.py
 
 #### 1. 大语言模型 (二选一)
 
-**DeepSeek API (推荐 - 性价比高)**
+**DeepSeek API (推荐)**
 ```env
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=sk-your-deepseek-key
@@ -264,15 +262,10 @@ story-flow/
 │   ├── 📄 config.py           # 配置管理
 │   ├── 📄 llm_client.py       # LLM客户端
 │   └── 📁 pipeline/           # 处理流水线
-│       ├── 📄 text_splitter.py    # 文本分割
 │       ├── 📄 text_analyzer.py    # 文本分析（支持角色名替换）
 │       ├── 📄 image_generator.py  # 图像生成
 │       ├── 📄 voice_synthesizer.py # 语音合成
 │       └── 📄 video_composer.py   # 视频合成
-├── 📁 scripts/                # 工具脚本
-│   ├── 📄 auto_pipeline.py   # 自动化流水线
-│   ├── 📄 setup_env.py       # 环境设置
-│   └── 📄 test_llm.py        # LLM测试
 ├── 📁 data/                   # 数据目录
 │   ├── 📁 input/             # 输入文件
 │   │   ├── 📄 character_mapping.json.template  # 角色映射模板
@@ -283,8 +276,16 @@ story-flow/
 │   │   ├── 📁 videos/        # 生成的视频
 │   │   └── 📁 processed/     # 处理后的CSV文件
 │   └── 📁 temp/              # 临时文件
+├── 📁 tests/                  # 测试文件
+│   ├── 📁 unit/              # 单元测试
+│   ├── 📁 integration/       # 集成测试
+│   └── 📁 fixtures/          # 测试数据
 ├── 📁 docs/                   # 文档
-└── 📄 pyproject.toml         # 项目配置
+├── 📄 main.py                # 主程序入口
+├── 📄 pyproject.toml         # 项目配置（uv管理）
+├── 📄 uv.lock               # 依赖锁定文件
+├── 📄 setup.sh              # 环境设置脚本
+└── 📄 cleanup.sh            # 清理脚本
 ```
 
 ## 🎯 使用场景
@@ -298,6 +299,7 @@ story-flow/
 ## 🔧 技术栈
 
 - **🐍 Python 3.10+** - 核心开发语言
+- **📦 uv** - 现代化Python包管理器
 - **🤖 OpenAI/DeepSeek API** - 大语言模型服务
 - **🎨 Stable Diffusion** - AI图像生成
 - **🎙️ Azure Cognitive Services** - 语音合成
@@ -305,6 +307,20 @@ story-flow/
 - **📊 Pandas** - 数据处理
 - **🖼️ Pillow** - 图像处理
 - **🎵 Pydub** - 音频处理
+
+## 🧹 项目维护
+
+### 清理生成文件
+```bash
+# 运行清理脚本（交互式选择清理内容）
+./cleanup.sh
+
+# 清理脚本功能：
+# - 清理生成的图片、音频、视频文件
+# - 清理临时文件和缓存
+# - 整理输入文件到指定目录
+# - 显示磁盘空间使用统计
+```
 
 ## 🤝 贡献指南
 
@@ -319,14 +335,37 @@ story-flow/
 
 ### 📝 开发计划
 
-- [x] ~~支持CSV格式替代Excel~~ ✅ 已完成
-- [x] ~~角色名替换和LoRA编号功能~~ ✅ 已完成
-- [x] ~~模板文件系统~~ ✅ 已完成
-- [ ] 支持更多语音服务商
-- [ ] 添加视频模板系统
-- [ ] 支持实时预览
-- [ ] Web界面开发
-- [ ] Docker容器化部署
+#### 已实现功能
+- [x] 📝 智能文本分析与分段 - 自动分析故事内容并智能分段
+- [x] 🎨 AI图像生成 - 根据文本描述自动生成配图
+- [x] 🎙️ 智能语音合成 - 将文本转换为自然语音
+- [x] 🎬 自动视频合成 - 将图片、音频合成为完整视频
+- [x] 👥 角色管理系统 - 支持多角色配置和替换
+- [x] 📊 灵活数据格式 - 支持CSV和Excel多种输入格式
+- [x] 🔧 现代化包管理 - 使用uv进行快速依赖管理
+- [x] 🧪 完整测试覆盖 - 单元测试和集成测试
+
+#### 核心功能扩展
+- [ ] 🎬 图生视频功能 - 基于AI技术实现图片到视频的转换
+- [ ] 🎙️ GPT-SoVITS语音克隆 - 实现个性化语音合成
+- [ ] 📱 剪映草稿自动生成 - 自动生成剪映可导入的项目文件
+- [ ] 🎵 智能音乐音效生成 - AI驱动的背景音乐和音效自动配置
+
+#### 系统优化
+- [ ] 🎤 更多语音服务商支持 - 扩展语音合成选择
+- [ ] 🎞️ 视频模板系统 - 提供多样化视频风格模板
+- [ ] 👀 实时预览功能 - 生成过程可视化预览
+- [ ] 🌐 Web界面开发 - 提供友好的网页操作界面
+- [ ] 🐳 Docker容器化部署 - 简化部署和分发流程
+- [ ] ⚡ 性能优化 - 多线程处理和缓存机制
+- [ ] 🔄 增量更新 - 支持部分内容更新而非全量重新生成
+
+#### 远期规划
+- [ ] 🔥 网络热点内容转化 - 自动抓取和分析网络热点，转化为视频内容
+- [ ] 🤖 视频生成Agent - 开发智能视频生成代理，实现全自动化内容创作
+- [ ] 📊 数据驱动优化 - 基于用户反馈和数据分析优化生成效果
+- [ ] 🎯 个性化推荐 - 根据用户偏好推荐内容风格和模板
+- [ ] 🌍 多语言支持 - 扩展到更多语言的内容生成和处理
 
 ## 📄 许可证
 
@@ -340,6 +379,7 @@ story-flow/
 - [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/) - 语音合成服务
 - [Stable Diffusion](https://stability.ai/) - AI图像生成
 - [MoviePy](https://zulko.github.io/moviepy/) - 视频处理库
+- [uv](https://github.com/astral-sh/uv) - 现代化Python包管理器
 
 ---
 
