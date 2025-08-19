@@ -1,2 +1,2 @@
-# This file ensures that the images directory is tracked by Git even when empty
-# Generated files will be placed in this directory during processing
+# This file ensures that the processed directory is tracked by Git even when empty
+# Processed files will be placed in this directory during processing

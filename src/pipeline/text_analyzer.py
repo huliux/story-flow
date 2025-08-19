@@ -125,12 +125,68 @@ def create_dataframe(sentences, character_mappings):
     """创建包含句子的DataFrame"""
     data = []
     for sentence in sentences:
-        if sentence.strip():  # Ignore blank lines
-            replaced_text, lora_ids = apply_character_replacement(sentence, character_mappings)
-            data.append([sentence, "", "", replaced_text, lora_ids])  # A列：原始中文，B列：英文翻译，C列：故事板，D列：替换后中文，E列：LoRA编号
+        # 更严格的过滤条件：忽略空行、纯英文内容、和明显的提示词模板
+        sentence_clean = sentence.strip()
+        if (sentence_clean and 
+            not is_english_template(sentence_clean) and 
+            len(sentence_clean) > 3):  # 至少3个字符
+            replaced_text, lora_ids = apply_character_replacement(sentence_clean, character_mappings)
+            data.append([sentence_clean, "", "", replaced_text, lora_ids])  # A列：原始中文，B列：英文翻译，C列：故事板，D列：替换后中文，E列：LoRA编号
     
     df = pd.DataFrame(data, columns=["原始中文", "英文翻译", "故事板提示词", "替换后中文", "LoRA编号"])
     return df
+
+def clean_content(content):
+    """清理章节内容，移除不相关的模板文本"""
+    lines = content.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        # 跳过空行和明显的英文模板内容
+        if line and not is_english_template(line):
+            cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
+
+def is_english_template(text):
+    """检测是否为英文模板或提示词内容"""
+    # 检测英文比例
+    english_chars = sum(1 for c in text if c.isascii() and c.isalpha())
+    total_chars = len([c for c in text if c.isalpha()])
+    
+    if total_chars == 0:
+        return True
+    
+    english_ratio = english_chars / total_chars
+    
+    # 如果英文字符超过80%，认为是英文内容
+    if english_ratio > 0.8:
+        return True
+    
+    # 检测常见的提示词模板关键词
+    template_keywords = [
+        'Would you like me to',
+        'Please share',
+        'I can\'t yet generate',
+        'Without the actual',
+        'Token count:',
+        'character descriptions',
+        'emotional tone',
+        'environmental setting',
+        'narrative text',
+        'placeholder text',
+        'prompt engineering',
+        'I\'ll ensure',
+        'visual coherence'
+    ]
+    
+    text_lower = text.lower()
+    for keyword in template_keywords:
+        if keyword.lower() in text_lower:
+            return True
+    
+    return False
 
 def replace_text_in_sentences(sentences, original_text, new_text):
     return [sentence.replace(original_text, new_text) for sentence in sentences]
@@ -141,6 +197,10 @@ def process_single_chapter_csv(chapter, output_file_path):
         sentences = []
         # 从章节内容中提取句子
         content = chapter.get('content', '')
+        
+        # 预处理：清理内容，移除不相关的模板文本
+        content = clean_content(content)
+        
         # 移除Markdown标题标记
         content = re.sub(r'^#+\s*', '', content, flags=re.MULTILINE)
         # 按句子分割 - 使用优化的正则表达式，零依赖，性能最佳
@@ -199,18 +259,30 @@ def process_chapter_to_csv(chapter, output_file_path):
     return process_single_chapter_csv(chapter, output_file_path)
 
 def main():
-    """主函数 - 只处理单个章节生成CSV文件"""
+    """主函数 - 处理指定章节生成CSV文件"""
+    import argparse
+    
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='处理指定章节生成CSV文件')
+    parser.add_argument('--chapter-index', type=int, default=0, help='要处理的章节索引（从0开始）')
+    args = parser.parse_args()
+    
     try:
         # 读取章节数据
         chapters_file = config.input_dir / "input_chapters.json"
         if not chapters_file.exists():
             print(f"错误: 找不到章节文件 {chapters_file}")
-            return
+            return False
         
         chapters = read_chapters_json(chapters_file)
         
-        # 只处理第一个章节生成CSV文件
-        chapter = chapters[0]
+        # 验证章节索引
+        if args.chapter_index < 0 or args.chapter_index >= len(chapters):
+            print(f"错误: 章节索引 {args.chapter_index} 超出范围 (0-{len(chapters)-1})")
+            return False
+        
+        # 处理指定章节生成CSV文件
+        chapter = chapters[args.chapter_index]
         output_file = config.output_dir_txt / "txt.csv"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         

@@ -23,6 +23,7 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from src.config import config
+from src.story_generator import story_generator
 
 # 要运行的模块列表（按顺序执行）
 MODULES = [
@@ -32,20 +33,61 @@ MODULES = [
     "video_composer"
 ]
 
-def run_pipeline_module(module_name):
+def clean_chapter_output_files():
+    """清理章节输出文件，为处理新章节做准备"""
+    try:
+        import shutil
+        
+        # 需要清理的目录和文件
+        cleanup_paths = [
+            config.output_dir_txt / "txt.csv",  # CSV文件
+            config.output_dir_image,   # 图片目录
+            config.output_dir_voice,   # 音频目录
+            # 注意：不清理videos目录
+        ]
+        
+        for path in cleanup_paths:
+            if path.exists():
+                if path.is_file():
+                    path.unlink()  # 删除文件
+                    print(f"  已删除文件: {path.name}")
+                elif path.is_dir():
+                    # 清空目录但保留目录结构和.gitkeep文件
+                    for item in path.iterdir():
+                        # 跳过.gitkeep文件
+                        if item.name == ".gitkeep":
+                            continue
+                        if item.is_file():
+                            item.unlink()
+                        elif item.is_dir():
+                            shutil.rmtree(item)
+                    print(f"  已清空目录: {path.name}")
+        
+        print("  输出文件清理完成")
+        
+    except Exception as e:
+        print(f"  清理输出文件时出错: {e}")
+        # 不要因为清理失败而中断处理流程
+        pass
+
+def run_pipeline_module(module_name, **kwargs):
     """运行指定的pipeline模块"""
     try:
         print(f"正在运行 {module_name}...")
         
+        # 构建命令
+        cmd = [sys.executable, "-m", f"src.pipeline.{module_name}"]
+        
+        # 为text_analyzer添加章节索引参数
+        if module_name == "text_analyzer" and "chapter_index" in kwargs:
+            cmd.extend(["--chapter-index", str(kwargs["chapter_index"])])
+        
         # 对于需要用户交互或需要显示进度的模块，直接运行不捕获输出
         if module_name in ["image_generator", "text_analyzer"]:
-            result = subprocess.run(
-                [sys.executable, "-m", f"src.pipeline.{module_name}"],
-                cwd=project_root
-            )
+            result = subprocess.run(cmd, cwd=project_root)
         else:
             result = subprocess.run(
-                [sys.executable, "-m", f"src.pipeline.{module_name}"],
+                cmd,
                 cwd=project_root,
                 capture_output=True,
                 text=True
@@ -72,9 +114,14 @@ def process_single_chapter(chapter, chapter_index, total_chapters):
     print(f"开始处理第 {chapter_index}/{total_chapters} 章: {chapter_title}")
     print(f"{'='*50}")
     
+    # 0. 清理之前章节的输出文件
+    print(f"\n步骤 0/4: 清理之前的输出文件...")
+    clean_chapter_output_files()
+    
     # 1. 生成CSV文件
     print(f"\n步骤 1/4: 生成CSV文件...")
-    if not run_pipeline_module("text_analyzer"):
+    # 传递章节索引（从1开始转换为从0开始）
+    if not run_pipeline_module("text_analyzer", chapter_index=chapter_index-1):
         print("CSV文件生成失败，跳过后续步骤")
         return False
     
@@ -125,6 +172,25 @@ def wait_for_user_input(current_chapter, total_chapters):
 def run_pipeline():
     """运行完整的处理流水线"""
     try:
+        print("🔍 步骤0: 校验章节文件与input.md的匹配性")
+        print("=" * 60)
+        
+        # 运行章节校验 - 实时显示输出
+        validation_result = subprocess.run(
+            [sys.executable, "-m", "src.pipeline.validate_chapters"],
+            cwd=project_root,
+            text=True,
+            encoding='utf-8'
+        )
+        
+        if validation_result.returncode != 0:
+            print("❌ 章节文件校验失败，流水线无法继续")
+            return False
+        
+        print("=" * 60)
+        print("✅ 章节文件校验完成，开始处理章节内容...")
+        print()
+        
         # 读取章节数据
         chapters_file = config.input_dir / "input_chapters.json"
         if not chapters_file.exists():
@@ -162,8 +228,26 @@ def run_pipeline():
         traceback.print_exc()
         return False
 
+def ensure_input_file():
+    """确保输入文件存在，如果不存在则生成故事内容"""
+    # 检查input.md文件是否存在且包含有效内容
+    if not story_generator.check_input_file_exists():
+        print("\n📝 检测到没有有效的input.md文件")
+        
+        # 提示用户生成故事
+        success = story_generator.generate_and_save_story()
+        if not success:
+            print("❌ 故事生成失败，无法继续")
+            return False
+    
+    return True
+
 def ensure_chapters_file():
     """确保章节文件存在，如果不存在则自动生成"""
+    # 首先确保输入文件存在
+    if not ensure_input_file():
+        return False
+    
     chapters_file = config.input_dir / 'input_chapters.json'
     
     if not chapters_file.exists():
@@ -202,22 +286,36 @@ def ensure_chapters_file():
     return True
 
 def run_text_splitter():
-    """运行文本分割器"""
+    """运行文本分割器（包含章节校验）"""
     print("\n正在运行文本分割器...")
+    
+    # 首先运行章节校验
+    print("步骤1: 校验章节文件与input.md的匹配性")
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "src.pipeline.text_splitter"],
-            cwd=project_root
+            [sys.executable, "validate_chapters.py"],
+            cwd=project_root,
+            capture_output=True,
+            text=True
         )
         
         if result.returncode == 0:
-            print("✅ 文本分割器执行成功")
+            print("✅ 章节文件校验完成")
+            if result.stdout:
+                # 只显示关键信息
+                lines = result.stdout.strip().split('\n')
+                for line in lines:
+                    if '✅' in line or '❌' in line or '📋' in line or line.strip().startswith(('1.', '2.', '3.', '4.')):
+                        print(f"  {line.strip()}")
             return True
         else:
-            print("❌ 文本分割器执行失败")
+            print("❌ 章节文件校验失败")
+            if result.stderr:
+                print(f"错误: {result.stderr.strip()}")
             return False
+            
     except Exception as e:
-        print(f"运行文本分割器时出错: {e}")
+        print(f"运行章节校验时出错: {e}")
         return False
 
 def run_text_analyzer():
@@ -281,11 +379,12 @@ def show_menu():
     print("请选择要执行的操作:")
     print("")
     print("  1. 🚀 自动执行所有流程 (推荐)")
-    print("  2. 📝 文本分割 (生成章节文件)")
-    print("  3. 📊 生成故事板 (CSV文件)")
-    print("  4. 🖼️  生成图像")
-    print("  5. 🎵 生成音频")
-    print("  6. 🎥 合成视频")
+    print("  2. ✍️  生成新故事 (AI创作)")
+    print("  3. 📝 文本分割 (生成章节文件)")
+    print("  4. 📊 生成故事板 (CSV文件)")
+    print("  5. 🖼️  生成图像")
+    print("  6. 🎵 生成音频")
+    print("  7. 🎥 合成视频")
     print("  0. 🚪 退出程序")
     print("")
     print("-"*60)
@@ -322,11 +421,11 @@ def get_user_choice():
     """获取用户选择"""
     while True:
         try:
-            choice = input("请输入选项编号 (0-6): ").strip()
-            if choice in ['0', '1', '2', '3', '4', '5', '6']:
+            choice = input("请输入选项编号 (0-7): ").strip()
+            if choice in ['0', '1', '2', '3', '4', '5', '6', '7']:
                 return int(choice)
             else:
-                print("❌ 无效选项，请输入 0-6 之间的数字")
+                print("❌ 无效选项，请输入 0-7 之间的数字")
         except (ValueError, KeyboardInterrupt):
             print("\n❌ 输入无效，请重新输入")
 
@@ -355,30 +454,36 @@ def run_interactive_mode():
         elif choice == 1:
             run_auto_pipeline()
         elif choice == 2:
+            success = story_generator.generate_new_story_force()
+            if success:
+                print("\n✅ 故事生成完成")
+            else:
+                print("\n❌ 故事生成失败")
+        elif choice == 3:
             success = run_text_splitter()
             if success:
                 print("\n✅ 文本分割完成")
             else:
                 print("\n❌ 文本分割失败")
-        elif choice == 3:
+        elif choice == 4:
             success = run_text_analyzer()
             if success:
                 print("\n✅ 故事板生成完成")
             else:
                 print("\n❌ 故事板生成失败")
-        elif choice == 4:
+        elif choice == 5:
             success = run_image_generator()
             if success:
                 print("\n✅ 图像生成完成")
             else:
                 print("\n❌ 图像生成失败")
-        elif choice == 5:
+        elif choice == 6:
             success = run_voice_synthesizer()
             if success:
                 print("\n✅ 音频生成完成")
             else:
                 print("\n❌ 音频生成失败")
-        elif choice == 6:
+        elif choice == 7:
             success = run_video_composer()
             if success:
                 print("\n✅ 视频合成完成")
@@ -404,6 +509,7 @@ def parse_arguments():
 使用示例:
   python main.py              # 启动交互式菜单
   python main.py --auto       # 自动执行所有流程
+  python main.py --generate   # 仅生成新故事
   python main.py --split      # 仅执行文本分割
   python main.py --analyze    # 仅生成故事板
   python main.py --images     # 仅生成图像
@@ -414,6 +520,8 @@ def parse_arguments():
     
     parser.add_argument('--auto', action='store_true', 
                        help='自动执行所有流程')
+    parser.add_argument('--generate', action='store_true', 
+                       help='仅生成新故事')
     parser.add_argument('--split', action='store_true', 
                        help='仅执行文本分割')
     parser.add_argument('--analyze', action='store_true', 
@@ -449,6 +557,16 @@ def main():
     # 解析命令行参数
     args = parse_arguments()
     
+    # 如果没有命令行参数，检查input.md文件是否存在且有效
+    if not any([args.auto, args.generate, args.split, args.analyze, args.images, args.audio, args.video, args.help_detailed]):
+        if not story_generator.check_input_file_exists():
+            print("\n📝 检测到没有有效的input.md文件")
+            success = story_generator.generate_and_save_story()
+            if not success:
+                print("❌ 故事生成失败，无法继续")
+                return False
+            print("\n✅ 故事生成完成，现在进入主菜单")
+    
     # 显示详细帮助
     if args.help_detailed:
         show_help()
@@ -457,6 +575,10 @@ def main():
     # 根据参数执行相应功能
     if args.auto:
         return run_auto_pipeline()
+    elif args.generate:
+        success = story_generator.generate_and_save_story()
+        print("\n✅ 故事生成完成" if success else "\n❌ 故事生成失败")
+        return success
     elif args.split:
         success = run_text_splitter()
         print("\n✅ 文本分割完成" if success else "\n❌ 文本分割失败")
