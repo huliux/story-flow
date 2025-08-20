@@ -3,9 +3,6 @@ import sys
 import json
 import re
 from pathlib import Path
-from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent.parent
@@ -53,19 +50,91 @@ def merge_short_sentences(sentences, min_length=None):
     return merged_sentences
 
 
-# 定义一个函数，翻译文本为英文
-def translate_to_english(text):
-    """翻译文本为英文"""
-    return llm_client.translate_to_english(text)
+# 定义一个函数，通过模型一次性处理所有字段
+def process_all_fields_with_model(data_list, character_mappings, story_content):
+    """通过模型一次性处理所有字段"""
+    # 构建系统提示词
+    system_prompt = f"""
+基于以下文件内容：
 
-# 定义一个函数，将文本翻译为分镜脚本
-def translate_to_storyboard(text):
-    """将文本翻译为分镜脚本"""
+角色映射配置：
+{json.dumps(character_mappings, ensure_ascii=False, indent=2)}
+
+完整故事内容：
+{story_content}
+
+请严格按照以下步骤和处理规则，系统性地处理 {json.dumps(data_list, ensure_ascii=False, indent=2)} 文件中的 JSON 数组。
+
+处理规则：
+
+角色识别与替换：
+
+输入： 读取 {json.dumps(data_list, ensure_ascii=False, indent=2)} 中每一个对象的 "原始中文" 字段。
+
+映射依据： 使用提供的角色映射配置（如下所示）作为唯一标准。
+
+操作： 扫描 "原始中文" 文本，识别并定位所有出现的角色称谓。将识别到的所有角色称谓（如“你”、“小猪”、“皮皮”、“大灰狼”、“兄弟们”、“生物们”等），严格按照映射关系替换为对应的 "new_name" 值。
+
+输出： 将完成替换后的完整文本更新到该对象的 "替换后中文" 字段。
+
+场景识别与添加：
+
+输入： 在完成角色替换的 "替换后中文" 文本基础上进行分析。
+
+操作： 判断该句文本所描述的核心事件或环境（例如：“建房子”、“发现诅咒”、“被围攻”、“完成仪式”）。用一个简洁的名词性短语（如：“森林建设场景”、“诅咒揭示场景”、“村庄围攻场景”、“月光仪式场景”）总结该场景。
+
+输出： 将此场景短语添加为 "替换后中文" 文本的后缀，与前文用句号分隔。格式为：[完成角色替换的原文]。[场景短语]。
+
+提示词生成：
+
+输入： 以上一步得到的、包含场景的最终版 "替换后中文" 文本为依据。
+
+操作： 将其翻译并提炼成高质量的 Stable Diffusion 英文提示词。提示词须包含：
+
+核心主体 (Subject): 明确的主语（如：1只穿着简朴勇敢的年轻小猪）。
+
+关键动作 (Action): 描述正在发生什么（如：building a house, evading fiery ravens）。
+
+镜头(Camera lens): 结合语境描述大胆的镜头视角与大胆的构图。（如：Wide-angle lens with first-person perspective）
+
+环境氛围 (Environment/Atmosphere): 描述地点、时间、光线和情绪（如：in a lush enchanted forest, during a moonlit night, dark and cursed atmosphere）。
+
+风格与质量 (Style/Quality): 指定艺术风格和画质（如：fantasy art style, digital painting, cinematic lighting, highly detailed, masterpiece）。
+
+输出： 将生成的英文提示词更新到该对象的 "故事板提示词" 字段。
+
+LoRA 编号映射：
+
+输入： 检查每个对象 "替换后中文" 字段中出现的 "new_name" 内容。
+
+映射规则：
+
+如果文本中包含 "1只穿着简朴勇敢的年轻小猪"（即主角），则 "LoRA编号" 设为 "0"。
+
+如果文本中仅包含 "多只形态各异被诅咒的森林生物" 或 "1只穿着皮毛凶猛的中成年狼"，或场景描述与主角无关，则 "LoRA编号" 设为空字符串 ""。
+
+注意： 此规则需根据您的具体映射配置调整。当前规则基于您上次提供的配置假设。
+
+输出： 将确定的编号更新到该对象的 "LoRA编号" 字段。
+
+请直接返回处理后的完整JSON数组，不要添加任何其他说明文字。
+    """
+    
     messages = [
-        {"role": "system", "content": "请仔细阅读输入的文本生成扩散提示。\n\n你是一位稳定的扩散提示工程师，对视觉故事讲述和角色一致性有深入的了解。你的主要任务是将提供的叙事文本转换为准确和高质量的稳定扩散提示，这些提示要在整个故事中保持角色连续性和场景连贯性。\n请仔细阅读输入的文本生成扩散提示。\n\n生成提示时，请牢记以下技术规格：\n- 输出应该是单行，用逗号分隔的元素。\n- 代币限制最多为75个代币。\n- 仅使用英语单词或短语，避免使用连字符或下划线。\n- 可以使用（元素：1.0 - 1.5）来强调，但限制为3个加权元素。\n- 根据文本中的人物主体，使用1girl、1boy、2girls、1pig、2pig、1animal等字符格式。\n元素优先级（从左到右排列）如下：\n1. 人物主体/性别\n2. 核心情绪/表达\n3. 关键的身体特征\n4. 服装/风格\n5. 场景/设置\n6. 姿势/动作\n7. 镜头角度\n8. 环境细节\n9. 艺术风格/质量\n上下文意识指南：\n- 确保性格与既定特征的一致性。\n- 反映情绪语气和叙述语境。\n- 考虑场景的连续性和故事的进展。\n- 平衡明确的细节和隐含的氛围。\n质量标准：\n- 优先考虑视觉故事讲述而不是技术完美。\n- 确保提示清晰，并与稳定扩散兼容。\n- 避免冗余，同时保持描述的丰富性。\n首先，在<思考>标签中分析叙事文本，并思考如何将其转换为符合上述所有要求的提示。然后，在<提示>标签中生成提示，并以单行、逗号分隔的格式编写。\n<思考>\n[在这里提供关于您如何将叙述文本转化为提示的详细分析]\n</思考>\n<提示>\n[您生成的提示在这里]\n</提示>\n\n\n注意：只需要生成并返回提示本身，不要说其它与故事无关的话，不要返回任何XML标签！"},
-        {"role": "user", "content": f"Transform this narrative text into a Stable Diffusion prompt: \"{text}\""},
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"请处理以下JSON数据：\n{json.dumps(data_list, ensure_ascii=False, indent=2)}"}
     ]
-    return llm_client.chat_completion(messages)
+    
+    response = llm_client.chat_completion(messages)
+    
+    try:
+        # 尝试解析返回的JSON
+        processed_data = json.loads(response)
+        return processed_data
+    except json.JSONDecodeError as e:
+        print(f"模型返回的数据不是有效的JSON格式: {e}")
+        print(f"原始返回内容: {response}")
+        return data_list  # 返回原始数据
 
 # 章节处理相关函数已移除，采用直接处理模式
 
@@ -85,30 +154,11 @@ def read_character_mapping():
         print(f"警告: 读取角色映射文件时发生错误: {e}，将不进行角色名替换")
         return []
 
-# 定义一个函数，应用角色名替换
-def apply_character_replacement(text, character_mappings):
-    """应用角色名替换并返回替换后的文本和LoRA编号列表"""
-    replaced_text = text
-    lora_ids = set()
-    
-    for mapping in character_mappings:
-        original_name = mapping.get('original_name', '')
-        new_name = mapping.get('new_name', '')
-        lora_id = mapping.get('lora_id', '')
-        
-        if original_name in replaced_text:
-            replaced_text = replaced_text.replace(original_name, new_name)
-            if lora_id:
-                lora_ids.add(lora_id)
-    
-    # 将LoRA编号列表转换为逗号分隔的字符串
-    lora_string = ','.join(sorted(lora_ids)) if lora_ids else ''
-    
-    return replaced_text, lora_string
+# apply_character_replacement函数已移除，功能由模型处理
 
-# 定义一个函数，创建数据列表用于JSON输出
-def create_data_list(sentences, character_mappings):
-    """创建包含句子的数据列表"""
+# 定义一个函数，创建初始数据列表（只包含原始中文字段）
+def create_initial_data_list(sentences):
+    """创建只包含原始中文字段的初始数据列表"""
     data = []
     for sentence in sentences:
         # 更严格的过滤条件：忽略空行、纯英文内容、和明显的提示词模板
@@ -116,13 +166,11 @@ def create_data_list(sentences, character_mappings):
         if (sentence_clean and 
             not is_english_template(sentence_clean) and 
             len(sentence_clean) > 3):  # 至少3个字符
-            replaced_text, lora_ids = apply_character_replacement(sentence_clean, character_mappings)
             data.append({
                 "原始中文": sentence_clean,
-                "英文翻译": "",
                 "故事板提示词": "",
-                "替换后中文": replaced_text,
-                "LoRA编号": lora_ids
+                "替换后中文": "",
+                "LoRA编号": ""
             })
     
     return data
@@ -179,11 +227,10 @@ def is_english_template(text):
     
     return False
 
-def replace_text_in_sentences(sentences, original_text, new_text):
-    return [sentence.replace(original_text, new_text) for sentence in sentences]
+# replace_text_in_sentences函数已移除，功能由模型处理
 
 def process_single_chapter_json(chapter, output_file_path):
-    """处理单个章节，生成JSON文件"""
+    """处理单个章节，分两阶段生成JSON文件"""
     try:
         sentences = []
         # 从章节内容中提取句子
@@ -209,41 +256,61 @@ def process_single_chapter_json(chapter, output_file_path):
                 chapter_sentences.append(remaining_text)
         
         sentences.extend(chapter_sentences)
-
         sentences = merge_short_sentences(sentences)  
 
+        # 第一阶段：创建只包含"原始中文"字段的初始数据列表
+        print("第一阶段：生成初始JSON文件（只包含原始中文字段）")
+        initial_data_list = create_initial_data_list(sentences)
+        
+        # 保存初始JSON文件
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            json.dump(initial_data_list, f, ensure_ascii=False, indent=2)
+        print(f"初始JSON文件已保存: {output_file_path}")
+        
+        # 第二阶段：通过模型一次性处理其他字段
+        print("第二阶段：通过模型处理其他字段")
+        
         # 读取角色映射配置
         character_mappings = read_character_mapping()
         
-        # 创建数据列表
-        data_list = create_data_list(sentences, character_mappings)
+        # 通过模型一次性处理所有字段
+        processed_data_list = process_all_fields_with_model(
+            initial_data_list, 
+            character_mappings, 
+            content
+        )
         
-        # 自动处理，不需要用户输入
-        max_workers = min(len(sentences), config.max_workers_translation)            
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 使用替换后的文本进行翻译
-            futures_translation = {executor.submit(translate_to_english, data_list[idx]["替换后中文"].strip()): idx 
-                                   for idx in range(len(data_list))}
-            futures_storyboard = {} 
-
-            for future in tqdm(as_completed(futures_translation), total=len(futures_translation), desc='正在翻译文本'):
-                idx = futures_translation[future]
-                translated_text = future.result()
-                data_list[idx]["英文翻译"] = translated_text
-                futures_storyboard[executor.submit(translate_to_storyboard, translated_text)] = idx
-
-            for future in tqdm(as_completed(futures_storyboard), total=len(futures_storyboard), desc='正在生成故事板'):
-                idx = futures_storyboard[future]
-                data_list[idx]["故事板提示词"] = future.result()
-
-        # 保存为JSON文件
+        # 读取story_bg并翻译成英文，添加到故事板提示词末尾
+        story_bg = None
+        for item in character_mappings:
+            if 'story_bg' in item:
+                story_bg = item['story_bg']
+                break
+        
+        if story_bg:
+            # 翻译story_bg到英文
+            translate_prompt = f"请将以下中文文本翻译成英文，保持简洁和准确：{story_bg}"
+            messages = [
+                {"role": "user", "content": translate_prompt}
+            ]
+            translated_bg = llm_client.chat_completion(messages).strip()
+            
+            # 将翻译后的story_bg添加到每个条目的故事板提示词末尾
+            for item in processed_data_list:
+                if item.get('故事板提示词'):
+                    item['故事板提示词'] = f"{item['故事板提示词']}, {translated_bg}"
+        
+        # 保存最终的JSON文件
         with open(output_file_path, 'w', encoding='utf-8') as f:
-            json.dump(data_list, f, ensure_ascii=False, indent=2)
+            json.dump(processed_data_list, f, ensure_ascii=False, indent=2)
+        print(f"最终JSON文件已保存: {output_file_path}")
+        
         return True
         
     except Exception as e:
         print(f"处理章节JSON时发生错误: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 # process_chapter_to_json函数已移除，直接使用process_single_chapter_json
