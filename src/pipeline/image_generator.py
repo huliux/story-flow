@@ -3,7 +3,7 @@ import sys
 import json
 import base64
 import requests
-import pandas as pd
+import json
 from pathlib import Path
 from tqdm import tqdm
 
@@ -39,20 +39,21 @@ def save_img(b64_image, path):
         raise
 
 def get_prompts(path):
-    """从CSV文件读取提示词和LoRA参数"""
+    """从JSON文件读取提示词和LoRA参数"""
     try:
-        df = pd.read_csv(path)
+        with open(path, 'r', encoding='utf-8') as f:
+            data_list = json.load(f)
         
-        # 获取提示词列（假设是第3列，索引为2）
-        prompts = df.iloc[:, 2].fillna("").tolist()
+        # 获取提示词列表
+        prompts = [item.get("故事板提示词", "") or "" for item in data_list]
         
-        # 获取LoRA参数列（假设是第5列，索引为4）
-        lora_param_nos = df.iloc[:, 4].fillna(0).tolist()
+        # 获取LoRA参数列表
+        lora_param_nos = [item.get("LoRA编号", "") if item.get("LoRA编号") is not None else "" for item in data_list]
         
         print(f"读取到 {len(prompts)} 个提示词")
         return prompts, lora_param_nos
     except Exception as e:
-        print(f"读取CSV文件失败: {e}")
+        print(f"读取JSON文件失败: {e}")
         return [], []
 
 
@@ -82,12 +83,12 @@ def main():
     print(f"Stable Diffusion API: {url}")
     
     # 读取提示词
-    csv_file = config.output_csv_file
-    if not csv_file.exists():
-        print(f"错误: CSV文件不存在 - {csv_file}")
+    json_file = config.output_json_file
+    if not json_file.exists():
+        print(f"错误: JSON文件不存在 - {json_file}")
         return False
     
-    prompts, lora_param_nos = get_prompts(csv_file)
+    prompts, lora_param_nos = get_prompts(json_file)
     if not prompts:
         print("错误: 未读取到任何提示词")
         return False
@@ -289,8 +290,8 @@ if __name__ == '__main__':
         if success and not auto_mode:
             print("\n是否需要重绘指定图片？")
             
-            csv_file = config.output_csv_file
-            prompts, lora_param_nos = get_prompts(csv_file)
+            json_file = config.output_json_file
+            prompts, lora_param_nos = get_prompts(json_file)
             lora_param_dict = config.lora_models
             output_dir = config.output_dir_image
             existing_files = set(os.listdir(output_dir))

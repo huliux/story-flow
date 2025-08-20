@@ -1,6 +1,6 @@
 import os
 import sys
-import pandas as pd
+import json
 import asyncio
 from pathlib import Path
 from tqdm.asyncio import tqdm as async_tqdm
@@ -117,10 +117,11 @@ async def process_text_files(input_file, output_dir, language):
     output_dir.mkdir(parents=True, exist_ok=True)
     
     try:
-        df = pd.read_csv(input_file)
+        with open(input_file, 'r', encoding='utf-8') as f:
+            data_list = json.load(f)
         
-        # 获取第一列的文本内容
-        column_data = df.iloc[:, 0].fillna("").tolist()
+        # 获取原始中文文本内容
+        column_data = [item.get("原始中文", "") for item in data_list]
         
         # 过滤掉空的文本
         texts = [(i, text) for i, text in enumerate(column_data, 1) if text and str(text).strip()]
@@ -175,7 +176,7 @@ async def process_text_files(input_file, output_dir, language):
 def main():
     """主函数"""
     # 使用配置文件中的路径
-    input_file = config.output_csv_file
+    input_file = config.output_json_file
     output_dir = config.output_dir_voice
     language = "zh-CN"
     

@@ -2,6 +2,7 @@
 
 import pytest
 import os
+import json
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -13,10 +14,9 @@ class TextAnalyzer:
         pass
     
     def analyze_story(self, story_file):
-        """分析故事文件并生成章节CSV"""
+        """分析故事文件并生成章节JSON"""
         # Mock implementation for testing
         import json
-        import pandas as pd
         from src.config import config
         from src.llm_client import LLMClient
         
@@ -32,30 +32,30 @@ class TextAnalyzer:
         except Exception as e:
             raise Exception(f"Failed to process chapter: {str(e)}")
         
-        # 创建mock的CSV数据
+        # 创建mock的JSON数据
         chapters_data = []
         # story_data是章节列表
         for i, chapter in enumerate(story_data, 1):
             chapters_data.append({
-                'chapter': i,
-                'content': chapter.get('content', f'测试章节{i}内容'),
-                'image_prompt': f'测试图像提示{i}',
-                'image_file': f'chapter_{i}.jpg',
-                'voice_file': f'chapter_{i}.wav'
+                '章节': i,
+                '原始中文': chapter.get('content', f'测试章节{i}内容'),
+                '故事板提示词': f'测试图像提示{i}',
+                '图像文件': f'chapter_{i}.jpg',
+                '语音文件': f'chapter_{i}.wav'
             })
         
         # 如果没有章节，创建默认数据
         if not chapters_data:
             chapters_data = [
-                {'chapter': 1, 'content': '测试内容', 'image_prompt': '测试图像提示', 'image_file': 'chapter_1.jpg', 'voice_file': 'chapter_1.wav'}
+                {'章节': 1, '原始中文': '测试内容', '故事板提示词': '测试图像提示', '图像文件': 'chapter_1.jpg', '语音文件': 'chapter_1.wav'}
             ]
         
-        # 创建CSV文件
-        output_file = config.output_dir_txt / "txt.csv"
+        # 创建JSON文件
+        output_file = config.output_dir_txt / "txt.json"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
-        df = pd.DataFrame(chapters_data)
-        df.to_csv(output_file, index=False, encoding='utf-8')
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(chapters_data, f, ensure_ascii=False, indent=2)
         
         return str(output_file)
 
@@ -63,30 +63,32 @@ class ImageGenerator:
     def __init__(self):
         pass
     
-    def generate_images_from_csv(self, csv_file):
-        """从CSV文件生成图像"""
+    def generate_images_from_json(self, json_file):
+        """从JSON文件生成图像"""
         # Mock implementation that calls LLM client for image prompt generation
         from src.llm_client import LLMClient
-        import pandas as pd
+        import json
         
-        # 检查CSV文件是否存在
-        if not Path(csv_file).exists():
+        # 检查JSON文件是否存在
+        if not Path(json_file).exists():
             return False
             
-        # 读取CSV文件
-        df = pd.read_csv(csv_file)
+        # 读取JSON文件
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
         
         # 初始化LLM客户端
         llm_client = LLMClient()
         
         # 为每个章节生成图像
-        for _, row in df.iterrows():
+        for item in data:
             # 使用LLM生成更好的图像提示
-            prompt = f"为以下故事内容生成图像描述：{row['content'][:200]}"
+            content = item.get('原始中文', '')
+            prompt = f"为以下故事内容生成图像描述：{content[:200]}"
             enhanced_prompt = llm_client.chat_completion(prompt)
             
             # 调用图像生成函数
-            image_file = row.get('image_file', 'test_output.png')
+            image_file = item.get('图像文件', 'test_output.png')
             success = self.generate_image(enhanced_prompt, image_file)
             if not success:
                 return False
@@ -241,7 +243,7 @@ class TestPipelineIntegration:
         mock_config.max_workers_translation = 2
         mock_config.validate_config.return_value = []  # 返回空列表表示没有配置错误
         mock_config.sd_api_url = "http://localhost:7860/"
-        mock_config.output_csv_file = Path(temp_workspace['output_dir']) / "txt.csv"
+        mock_config.output_json_file = Path(temp_workspace['output_dir']) / "txt.json"
         mock_config.output_dir_txt = Path(temp_workspace['output_dir'])
         mock_config.output_dir_image = Path(temp_workspace['images_dir'])
         mock_config.output_dir_temp = Path(temp_workspace['output_dir']) / "temp"
@@ -290,7 +292,7 @@ class TestPipelineIntegration:
                             assert os.path.exists(chapters_file)
                             
                             # 2. 图像生成
-                            result = generator.generate_images_from_csv(chapters_file)
+                            result = generator.generate_images_from_json(chapters_file)
                             assert result is True
                             
                             # 验证调用
@@ -299,6 +301,7 @@ class TestPipelineIntegration:
     
     def test_image_to_voice_integration(self, temp_workspace, mock_config):
         """测试图像生成到语音合成的集成"""
+        import json
         # 配置mock
         mock_config.output_images_dir = temp_workspace['images_dir']
         mock_config.output_audio_dir = temp_workspace['audio_dir']
@@ -306,16 +309,16 @@ class TestPipelineIntegration:
         mock_config.azure_speech_region = "eastus"
         mock_config.azure_speech_voice = "zh-CN-XiaoxiaoNeural"
         
-        # 创建测试CSV文件
-        csv_content = """chapter,content,image_prompt,voice_file,lora_model,lora_strength
-1,小猫在花园里玩耍,cute cat in garden,chapter_1.wav,,
-2,小猫发现洞穴,cat discovering cave,chapter_2.wav,,
-3,小猫找到宝藏,cat finding treasure,chapter_3.wav,,
-"""
+        # 创建测试JSON文件
+        json_data = [
+            {"章节": 1, "原始中文": "小猫在花园里玩耍", "故事板提示词": "cute cat in garden", "语音文件": "chapter_1.wav"},
+            {"章节": 2, "原始中文": "小猫发现洞穴", "故事板提示词": "cat discovering cave", "语音文件": "chapter_2.wav"},
+            {"章节": 3, "原始中文": "小猫找到宝藏", "故事板提示词": "cat finding treasure", "语音文件": "chapter_3.wav"}
+        ]
         
-        csv_file = os.path.join(temp_workspace['output_dir'], "chapters.csv")
-        with open(csv_file, 'w', encoding='utf-8') as f:
-            f.write(csv_content)
+        json_file = os.path.join(temp_workspace['output_dir'], "chapters.json")
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
         
         # 创建测试图像文件
         for i in range(1, 4):
@@ -339,13 +342,14 @@ class TestPipelineIntegration:
                     # 执行集成测试
                     synthesizer = VoiceSynthesizer()
                     
-                    # 读取CSV并为每个章节生成语音
-                    import pandas as pd
-                    df = pd.read_csv(csv_file)
+                    # 读取JSON并为每个章节生成语音
+                    import json
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
                     
-                    for _, row in df.iterrows():
-                        audio_path = os.path.join(temp_workspace['audio_dir'], row['voice_file'])
-                        result = synthesizer.synthesize_text(row['content'], audio_path)
+                    for item in data:
+                        audio_path = os.path.join(temp_workspace['audio_dir'], item['语音文件'])
+                        result = synthesizer.synthesize_text(item['原始中文'], audio_path)
                         assert result is True
                         assert os.path.exists(audio_path)
     
@@ -510,22 +514,23 @@ class TestPipelineIntegration:
                                                             assert os.path.exists(chapters_file)
                                                             
                                                             # 2. 图像生成
-                                                            img_result = generator.generate_images_from_csv(chapters_file)
+                                                            img_result = generator.generate_images_from_json(chapters_file)
                                                             assert img_result is True
                                                             
                                                             # 3. 语音合成（模拟）
-                                                            import pandas as pd
-                                                            df = pd.read_csv(chapters_file)
+                                                            import json
+                                                            with open(chapters_file, 'r', encoding='utf-8') as f:
+                                                                chapters_data = json.load(f)
                                                             audio_files = []
                                                             
-                                                            for _, row in df.iterrows():
-                                                                audio_path = os.path.join(temp_workspace['audio_dir'], row['voice_file'])
-                                                                voice_result = synthesizer.synthesize_text(row['content'], audio_path)
+                                                            for chapter in chapters_data:
+                                                                audio_path = os.path.join(temp_workspace['audio_dir'], chapter['语音文件'])
+                                                                voice_result = synthesizer.synthesize_text(chapter['原始中文'], audio_path)
                                                                 assert voice_result is True
                                                                 audio_files.append(audio_path)
                                                             
                                                             # 4. 视频合成
-                                                            image_files = [os.path.join(temp_workspace['images_dir'], f"chapter_{i}.jpg") for i in range(1, len(df) + 1)]
+                                                            image_files = [os.path.join(temp_workspace['images_dir'], f"chapter_{i}.jpg") for i in range(1, len(chapters_data) + 1)]
                                                             output_video = os.path.join(temp_workspace['video_dir'], "final_story.mp4")
                                                             
                                                             video_result = composer.compose_video(image_files, audio_files, output_video)
@@ -559,31 +564,32 @@ class TestPipelineIntegration:
     
     def test_data_flow_consistency(self, temp_workspace, mock_config):
         """测试数据流一致性"""
-        # 创建测试CSV文件
-        csv_content = """chapter,content,image_prompt,voice_file,lora_model,lora_strength
-1,第一章内容,first chapter image,chapter_1.wav,,
-2,第二章内容,second chapter image,chapter_2.wav,,
-"""
+        import json
+        # 创建测试JSON文件
+        json_data = [
+            {"章节": 1, "原始中文": "第一章内容", "故事板提示词": "first chapter image", "语音文件": "chapter_1.wav"},
+            {"章节": 2, "原始中文": "第二章内容", "故事板提示词": "second chapter image", "语音文件": "chapter_2.wav"}
+        ]
         
-        csv_file = os.path.join(temp_workspace['output_dir'], "chapters.csv")
-        with open(csv_file, 'w', encoding='utf-8') as f:
-            f.write(csv_content)
+        json_file = os.path.join(temp_workspace['output_dir'], "chapters.json")
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
         
-        # 验证CSV数据可以被正确读取和处理
-        import pandas as pd
-        df = pd.read_csv(csv_file)
+        # 验证JSON数据可以被正确读取和处理
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
         
-        assert len(df) == 2
-        assert 'chapter' in df.columns
-        assert 'content' in df.columns
-        assert 'image_prompt' in df.columns
-        assert 'voice_file' in df.columns
+        assert len(data) == 2
+        assert '章节' in data[0]
+        assert '原始中文' in data[0]
+        assert '故事板提示词' in data[0]
+        assert '语音文件' in data[0]
         
         # 验证数据类型和内容
-        assert df.iloc[0]['chapter'] == 1
-        assert df.iloc[0]['content'] == '第一章内容'
-        assert df.iloc[0]['voice_file'] == 'chapter_1.wav'
+        assert data[0]['章节'] == 1
+        assert data[0]['原始中文'] == '第一章内容'
+        assert data[0]['语音文件'] == 'chapter_1.wav'
         
-        assert df.iloc[1]['chapter'] == 2
-        assert df.iloc[1]['content'] == '第二章内容'
-        assert df.iloc[1]['voice_file'] == 'chapter_2.wav'
+        assert data[1]['章节'] == 2
+        assert data[1]['原始中文'] == '第二章内容'
+        assert data[1]['语音文件'] == 'chapter_2.wav'

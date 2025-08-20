@@ -3,7 +3,7 @@
 import pytest
 import pandas as pd
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 
 # 由于text_analyzer模块在导入时会检查API密钥，我们需要先mock相关依赖
 with patch('src.llm_client.llm_client') as mock_llm_client:
@@ -16,10 +16,9 @@ with patch('src.llm_client.llm_client') as mock_llm_client:
         merge_short_sentences,
         translate_to_english,
         translate_to_storyboard,
-        read_chapters_json,
         read_character_mapping,
         apply_character_replacement,
-        process_single_chapter_csv
+        process_single_chapter_json
     )
 
 
@@ -98,10 +97,20 @@ class TestTextAnalyzer:
         expected = ["第一个句子。", "第二个句子！", "没有标点的文本"]
         assert sentences == expected
     
-    def test_process_single_chapter_csv_functionality(self):
-        """测试process_single_chapter_csv函数的基本功能"""
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('json.dump')
+    @patch('src.pipeline.text_analyzer.translate_to_storyboard')
+    @patch('src.pipeline.text_analyzer.translate_to_english')
+    @patch('src.pipeline.text_analyzer.read_character_mapping')
+    def test_process_single_chapter_json_functionality(self, mock_read_mapping, mock_translate_english, mock_translate_storyboard, mock_json_dump, mock_file):
+        """测试process_single_chapter_json函数的基本功能"""
         import tempfile
         import os
+        
+        # 设置mock返回值
+        mock_read_mapping.return_value = {}
+        mock_translate_english.return_value = "Translated text"
+        mock_translate_storyboard.return_value = "Storyboard prompt"
         
         # 创建测试章节数据
         test_chapter = {
@@ -110,39 +119,40 @@ class TestTextAnalyzer:
         }
         
         # 创建临时输出文件
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
             temp_path = temp_file.name
         
         try:
             # 调用函数
-            result = process_single_chapter_csv(test_chapter, temp_path)
+            result = process_single_chapter_json(test_chapter, temp_path)
             
             # 验证返回结果
             assert isinstance(result, bool)
-            assert result is True
+            assert result == True  # 应该返回True表示成功
             
-            # 验证文件是否创建
-            assert os.path.exists(temp_path)
+            # 验证mock被调用
+            mock_json_dump.assert_called()
             
         finally:
             # 清理临时文件
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
     
-    @patch('pandas.read_csv')
+    @patch('builtins.open')
     @patch('pathlib.Path.exists')
-    def test_file_operations(self, mock_exists, mock_read_csv):
+    def test_file_operations(self, mock_exists, mock_open):
         """测试文件操作相关功能"""
         # Mock文件存在
         mock_exists.return_value = True
         
-        # Mock CSV读取
-        mock_df = pd.DataFrame({
-            '章节': ['第一章', '第二章'],
-            '内容': ['内容1', '内容2'],
-            '图像提示词': ['提示词1', '提示词2']
-        })
-        mock_read_csv.return_value = mock_df
+        # Mock JSON读取
+        import json
+        mock_data = [
+            {'章节': 1, '原始中文': '内容1', '故事板提示词': '提示词1'},
+            {'章节': 2, '原始中文': '内容2', '故事板提示词': '提示词2'}
+        ]
+        mock_file = mock_open.return_value.__enter__.return_value
+        mock_file.read.return_value = json.dumps(mock_data, ensure_ascii=False)
         
         # 这里可以测试实际的文件读取逻辑
         # 由于text_analyzer模块的main函数比较复杂，我们主要测试核心功能

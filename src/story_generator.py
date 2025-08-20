@@ -30,24 +30,54 @@ class StoryGenerator:
             print(f"读取input.md文件时出错: {e}")
             return False
     
-    def get_story_theme_from_user(self) -> Optional[str]:
-        """从用户获取故事主题"""
+    def get_story_info_from_user(self) -> Optional[tuple[str, str]]:
+        """从用户获取故事类型和主题
+        
+        Returns:
+            tuple[str, str] | None: (故事类型, 故事主题) 或 None（用户退出）
+        """
         print("\n" + "="*60)
         print("📝 故事生成器")
         print("="*60)
         print("没有找到有效的input.md文件，让我们来创建一个新的故事！")
         print("")
-        print("请输入您想要的故事主题，例如：")
-        print("  - 科幻冒险：太空探索")
-        print("  - 奇幻魔法：魔法学院")
-        print("  - 悬疑推理：密室逃脱")
-        print("  - 爱情故事：时空恋人")
-        print("  - 历史传奇：古代英雄")
+        print("请按照提示输入故事信息：")
         print("")
+        
+        # 获取故事类型
+        print("📚 第一步：选择故事类型")
+        print("可选类型：童话、科幻、悬疑、爱情、历史、奇幻、冒险、励志等")
         print("-"*60)
         
         while True:
-            theme = input("请输入故事主题（或输入 'q' 退出）: ").strip()
+            story_type = input("请输入故事类型（或输入 'q' 退出）: ").strip()
+            
+            if story_type.lower() == 'q':
+                print("用户选择退出")
+                return None
+            
+            if len(story_type) < 2:
+                print("❌ 故事类型太短，请输入至少2个字符")
+                continue
+            
+            if len(story_type) > 20:
+                print("❌ 故事类型太长，请输入不超过20个字符")
+                continue
+            
+            break
+        
+        # 获取故事主题
+        print("\n🎯 第二步：输入故事主题/关键字")
+        print("主题示例：")
+        print("  - 太空探索、外星文明、时间旅行")
+        print("  - 魔法学院、龙与骑士、失落王国")
+        print("  - 密室逃脱、连环杀手、失踪案件")
+        print("  - 时空恋人、青梅竹马、异地恋")
+        print("  - 古代英雄、战国风云、丝绸之路")
+        print("-"*60)
+        
+        while True:
+            theme = input("请输入故事主题/关键字（或输入 'q' 退出）: ").strip()
             
             if theme.lower() == 'q':
                 print("用户选择退出")
@@ -61,29 +91,53 @@ class StoryGenerator:
                 print("❌ 主题太长，请输入不超过100个字符的主题")
                 continue
             
-            return theme
-    
-    def generate_story_content(self, theme: str) -> str:
-        """根据主题生成故事内容"""
-        print(f"\n🤖 正在根据主题 '{theme}' 生成故事...")
+            break
         
-        # 构建系统提示词
-        system_prompt = """
-你是一位专业的故事创作者。请根据用户提供的主题创作一个完整的故事。
-
+        print(f"\n✅ 故事信息确认：")
+        print(f"   故事类型：{story_type}")
+        print(f"   故事主题：{theme}")
+        
+        return (story_type, theme)
+    
+    def generate_story_content(self, story_type: str, theme: str) -> str:
+        """根据故事类型和主题生成故事内容
+        
+        Args:
+            story_type: 故事类型（如童话、科幻、悬疑等）
+            theme: 故事主题/关键字
+        """
+        print(f"\n🤖 正在生成 '{story_type}' 类型的故事，主题：'{theme}'...")
+        
+        # 构建系统提示词，替换占位符
+        system_prompt = f"""
+你的任务是根据用户输入的关键字或主题，生成一个{story_type}短视频故事。请仔细阅读以下信息，并按照指定的逻辑和结构来创作故事。
+故事类型:
+<故事类型>
+{story_type}
+</故事类型>
+关键字或主题:
+<关键字或主题>
+{theme}
+</关键字或主题>
+讲故事的逻辑和结构如下：
+1. **悬念开场**：以"场景/背景+反常识疑问/断言"开篇，激发观众兴趣。
+2. **身份代入**：用第二人称"你"描述主角身份、时代背景及面临的危机，不要出现"想象一下"等过渡词，直接进入主题。
+3. **冲突升级**：外部压力或遇到什么挫折。
+4. **破局细节**：主角采取哪些递进行动，扭转局面，解决问题。
+5. **主题收尾**：通过主角结局引出金句。
+请在<故事>标签内写下生成的短视频故事。确保故事结构完整，逻辑连贯，语言生动，能够吸引观众的注意力。
+<故事>
+[在此生成短视频故事]
+</故事>
+注意：只需要生成并返回故事本身，不要说其它与故事无关的话，不要返回任何XML标签！
 要求：
-1. 故事应该包含4-6个章节
-2. 每个章节应该有明确的标题（使用## 格式）
-3. 故事情节要完整，有开头、发展、高潮和结尾
-4. 语言要生动有趣，适合制作成视频
-5. 每个章节的内容要足够详细，便于后续的图像生成和语音合成
-6. 总字数控制在800-1500字之间
-7. 使用Markdown格式，包含一个主标题（# 格式）
+1. 语言要生动有趣，适合制作成视频
+2. 每个章节的内容要足够详细，便于后续的图像生成和语音合成
 
 请确保故事内容积极向上，适合所有年龄段观看。
 """
         
-        user_prompt = f"请根据以下主题创作一个完整的故事：{theme}"
+        user_prompt = f"请根据故事类型'{story_type}'和主题'{theme}'创作一个完整的故事。"
         
         messages = [
             {"role": "system", "content": system_prompt},
@@ -91,12 +145,22 @@ class StoryGenerator:
         ]
         
         try:
-            # 调用大模型生成故事
-            story_content = llm_client.chat_completion(
-                messages=messages,
-                max_tokens=2000,  # 增加token数以生成更完整的故事
-                temperature=0.8   # 提高创造性
-            )
+            # 调用大模型生成故事，使用专门的故事生成模型
+            if config.llm_provider == 'deepseek':
+                # 使用DeepSeek的故事生成专用模型
+                story_content = llm_client.chat_completion_with_model(
+                    messages=messages,
+                    model=config.deepseek_story_model,
+                    max_tokens=2000,  # 增加token数以生成更完整的故事
+                    temperature=0.8   # 提高创造性
+                )
+            else:
+                # 使用默认模型
+                story_content = llm_client.chat_completion(
+                    messages=messages,
+                    max_tokens=2000,  # 增加token数以生成更完整的故事
+                    temperature=0.8   # 提高创造性
+                )
             
             return story_content
             
@@ -140,14 +204,16 @@ class StoryGenerator:
                 else:
                     print("请输入 y 或 n")
         
-        # 获取用户输入的主题
-        theme = self.get_story_theme_from_user()
-        if not theme:
+        # 获取用户输入的故事信息
+        story_info = self.get_story_info_from_user()
+        if not story_info:
             return False
+        
+        story_type, theme = story_info
         
         try:
             # 生成故事内容
-            story_content = self.generate_story_content(theme)
+            story_content = self.generate_story_content(story_type, theme)
             
             # 保存到文件
             success = self.save_story_to_file(story_content)
@@ -171,30 +237,51 @@ class StoryGenerator:
         print("============================================================")
         print("正在生成新故事，将覆盖现有的input.md文件！\n")
         
-        print("请输入您想要的故事主题，例如：")
-        print("  - 科幻冒险：太空探索")
-        print("  - 奇幻魔法：魔法学院")
-        print("  - 悬疑推理：密室逃脱")
-        print("  - 爱情故事：时空恋人")
-        print("  - 历史传奇：古代英雄")
-        print()
+        print("请按照提示输入故事信息：")
+        print("")
+        
+        # 获取故事类型
+        print("📚 第一步：选择故事类型")
+        print("可选类型：童话、科幻、悬疑、爱情、历史、奇幻、冒险、励志等")
         print("-" * 60)
         
         try:
-            theme = input("请输入故事主题（或输入 'q' 退出）: ").strip()
+            story_type = input("请输入故事类型（或输入 'q' 退出）: ").strip()
+            
+            if story_type.lower() == 'q':
+                print("\n👋 已取消故事生成")
+                return False
+            
+            if not story_type or len(story_type) < 2:
+                print("\n❌ 故事类型不能为空且至少2个字符")
+                return False
+            
+            # 获取故事主题
+            print("\n🎯 第二步：输入故事主题/关键字")
+            print("主题示例：")
+            print("  - 太空探索、外星文明、时间旅行")
+            print("  - 魔法学院、龙与骑士、失落王国")
+            print("  - 密室逃脱、连环杀手、失踪案件")
+            print("  - 时空恋人、青梅竹马、异地恋")
+            print("  - 古代英雄、战国风云、丝绸之路")
+            print("-" * 60)
+            
+            theme = input("请输入故事主题/关键字（或输入 'q' 退出）: ").strip()
             
             if theme.lower() == 'q':
                 print("\n👋 已取消故事生成")
                 return False
             
-            if not theme:
-                print("\n❌ 主题不能为空")
+            if not theme or len(theme) < 2:
+                print("\n❌ 故事主题不能为空且至少2个字符")
                 return False
             
-            print(f"\n🤖 正在根据主题 '{theme}' 生成故事...")
+            print(f"\n✅ 故事信息确认：")
+            print(f"   故事类型：{story_type}")
+            print(f"   故事主题：{theme}")
             
             # 生成故事内容
-            story_content = self.generate_story_content(theme)
+            story_content = self.generate_story_content(story_type, theme)
             
             if not story_content:
                 print("\n❌ 故事生成失败")

@@ -51,6 +51,7 @@ def mock_config():
     config.output_dir_temp = project_root / "data" / "temp"
     config.input_md_file = config.input_dir / "input.md"
     config.output_csv_file = config.output_dir_txt / "chapters.csv"
+    config.output_json_file = config.output_dir_txt / "chapters.json"
     config.min_sentence_length = 10
     config.max_workers_translation = 2
     config.llm_provider = "openai"

@@ -1,2 +1,0 @@
-# This file ensures that the processed directory is tracked by Git even when empty
-# Processed files will be placed in this directory during processing

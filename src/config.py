@@ -120,6 +120,11 @@ class Config:
     def deepseek_model(self) -> str:
         return os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
     
+    @property
+    def deepseek_story_model(self) -> str:
+        """故事生成专用的DeepSeek模型"""
+        return os.getenv('DEEPSEEK_STORY_MODEL', 'deepseek-reasoner')
+    
     # 通用LLM配置
     @property
     def llm_max_tokens(self) -> int:
@@ -345,6 +350,10 @@ class Config:
     @property
     def output_csv_file(self) -> Path:
         return self.project_root / os.getenv('OUTPUT_CSV_FILE', 'data/output/processed/txt.csv')
+    
+    @property
+    def output_json_file(self) -> Path:
+        return self.project_root / os.getenv('OUTPUT_JSON_FILE', 'data/output/processed/txt.json')
     
     @property
     def params_json_file(self) -> Path:

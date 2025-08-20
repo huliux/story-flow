@@ -25,7 +25,7 @@ from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.compositing.CompositeVideoClip import concatenate_videoclips
 from moviepy.video.VideoClip import TextClip
 import numpy as np
-import pandas as pd
+import json
 from tqdm import tqdm
 from src.config import config
 
@@ -84,15 +84,17 @@ def load_subtitle_data(total_files):
     print(f"字幕功能已启用 (VIDEO_SUBTITLE={load_subtitles})")
     
     try:
-        subtitle_file = subtitle_dir / 'txt.csv'
+        subtitle_file = config.output_json_file
         if not subtitle_file.exists():
             print(f"警告: 字幕文件不存在 - {subtitle_file}")
             print("提示: 请确保文本分析步骤已完成并生成了字幕文件")
             return [""]*total_files
             
-        df = pd.read_csv(subtitle_file, header=None)
-        # 获取第一列数据，从第二行开始（跳过第一行）
-        subtitles = df.iloc[1:, 0].fillna("").astype(str).str.replace('\n', ' ', regex=False).tolist()
+        with open(subtitle_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # 从JSON数据中提取原始中文字幕
+        subtitles = [item.get('原始中文', '').replace('\n', ' ') for item in data]
         
         # 确保字幕数量与图片数量匹配
         if len(subtitles) < total_files:

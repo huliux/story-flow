@@ -47,18 +47,15 @@ class TestVideoComposer:
     def test_load_subtitle_data_success(self):
         """测试加载字幕数据成功"""
         with patch('pathlib.Path.exists', return_value=True), \
-             patch('pandas.read_csv') as mock_read_csv:
+             patch('builtins.open', mock_open(read_data='[{"原始中文": "字幕1"}, {"原始中文": "字幕2"}, {"原始中文": "字幕3"}]')), \
+             patch('json.load') as mock_json_load:
             
-            # Mock pandas DataFrame
-            mock_df = MagicMock()
-            mock_df.iloc = MagicMock()
-            mock_df.iloc.__getitem__.return_value = MagicMock()
-            mock_df.iloc.__getitem__.return_value.fillna.return_value = MagicMock()
-            mock_df.iloc.__getitem__.return_value.fillna.return_value.astype.return_value = MagicMock()
-            mock_df.iloc.__getitem__.return_value.fillna.return_value.astype.return_value.str = MagicMock()
-            mock_df.iloc.__getitem__.return_value.fillna.return_value.astype.return_value.str.replace.return_value = MagicMock()
-            mock_df.iloc.__getitem__.return_value.fillna.return_value.astype.return_value.str.replace.return_value.tolist.return_value = ['字幕1', '字幕2', '字幕3']
-            mock_read_csv.return_value = mock_df
+            # Mock JSON data
+            mock_json_load.return_value = [
+                {"原始中文": "字幕1"},
+                {"原始中文": "字幕2"},
+                {"原始中文": "字幕3"}
+            ]
             
             result = load_subtitle_data(3)
             
@@ -82,7 +79,7 @@ class TestVideoComposer:
     def test_load_subtitle_data_exception(self):
         """测试加载字幕数据异常"""
         with patch('pathlib.Path.exists', return_value=True), \
-             patch('pandas.read_csv', side_effect=Exception("File read error")):
+             patch('builtins.open', side_effect=Exception("File read error")):
             result = load_subtitle_data(3)
             
             assert len(result) == 3

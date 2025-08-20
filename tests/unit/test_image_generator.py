@@ -103,51 +103,59 @@ class TestImageGenerator:
     
     def test_get_prompts_success(self, temp_dir):
         """测试成功读取提示词的情况"""
-        # 创建测试CSV文件
-        csv_content = "章节,内容,图像提示词,语音文件,LoRA参数\n第一章,内容1,提示词1,audio1.wav,0\n第二章,内容2,提示词2,audio2.wav,1"
-        csv_path = temp_dir / "test_prompts.csv"
+        # 创建测试JSON文件
+        json_content = [
+            {"章节": "第一章", "内容": "内容1", "故事板提示词": "提示词1", "语音文件": "audio1.wav", "LoRA编号": 0},
+            {"章节": "第二章", "内容": "内容2", "故事板提示词": "提示词2", "语音文件": "audio2.wav", "LoRA编号": 1}
+        ]
+        json_path = temp_dir / "test_prompts.json"
         
-        with open(csv_path, 'w', encoding='utf-8') as f:
-            f.write(csv_content)
+        import json
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_content, f, ensure_ascii=False)
         
-        prompts, lora_params = get_prompts(str(csv_path))
+        prompts, lora_params = get_prompts(str(json_path))
         
         assert prompts == ["提示词1", "提示词2"]
         assert lora_params == [0, 1]
     
     def test_get_prompts_missing_file(self):
         """测试读取不存在的文件"""
-        non_existent_path = Path("/non/existent/file.csv")
+        non_existent_path = Path("/non/existent/file.json")
         
         # get_prompts函数捕获所有异常并返回空列表
         prompts, lora_params = get_prompts(non_existent_path)
         assert prompts == []
         assert lora_params == []
     
-    def test_get_prompts_empty_csv(self, temp_dir):
-        """测试读取空CSV文件的情况"""
-        csv_path = temp_dir / "empty.csv"
+    def test_get_prompts_empty_json(self, temp_dir):
+        """测试读取空JSON文件的情况"""
+        json_path = temp_dir / "empty.json"
         
-        # 创建只有标题行的CSV
-        with open(csv_path, 'w', encoding='utf-8') as f:
-            f.write("章节,内容,图像提示词,语音文件,LoRA参数\n")
+        # 创建空的JSON数组
+        import json
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump([], f)
         
-        prompts, lora_params = get_prompts(str(csv_path))
+        prompts, lora_params = get_prompts(str(json_path))
         
         assert prompts == []
         assert lora_params == []
     
     def test_get_prompts_missing_columns(self, temp_dir):
-        """测试CSV文件缺少列的情况"""
-        # 创建缺少列的CSV文件
-        csv_content = "章节,内容\n第一章,内容1"
-        csv_path = temp_dir / "incomplete.csv"
+        """测试JSON文件缺少字段的情况"""
+        # 创建缺少字段的JSON文件
+        json_content = [
+            {"章节": "第一章", "内容": "内容1"}
+        ]
+        json_path = temp_dir / "incomplete.json"
         
-        with open(csv_path, 'w', encoding='utf-8') as f:
-            f.write(csv_content)
+        import json
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_content, f, ensure_ascii=False)
         
-        # 应该能处理缺少的列，返回空值或默认值
-        prompts, lora_params = get_prompts(str(csv_path))
+        # 应该能处理缺少的字段，返回空值或默认值
+        prompts, lora_params = get_prompts(str(json_path))
         
         # 根据实际实现，这里可能返回空字符串或抛出异常
         assert isinstance(prompts, list)
@@ -219,28 +227,24 @@ class TestImageGenerator:
         
         assert decoded_data == test_data
     
-    @patch('pandas.read_csv')
-    def test_get_prompts_with_nan_values(self, mock_read_csv):
-        """测试处理包含NaN值的CSV文件"""
-        import numpy as np
+    @patch('builtins.open', new_callable=lambda: mock_open(read_data='[{"章节": "第一章", "内容": "内容1", "图像提示词": "提示词1", "语音文件": "audio1.wav", "LoRA参数": 0}, {"章节": "第二章", "内容": "内容2", "图像提示词": null, "语音文件": "audio2.wav", "LoRA参数": null}]'))
+    @patch('json.load')
+    def test_get_prompts_with_null_values(self, mock_json_load, mock_file):
+        """测试处理包含null值的JSON文件"""
         
-        # Mock包含NaN值的DataFrame
-        mock_df = pd.DataFrame({
-            '章节': ['第一章', '第二章'],
-            '内容': ['内容1', '内容2'],
-            '图像提示词': ['提示词1', np.nan],  # 第二行包含NaN
-            '语音文件': ['audio1.wav', 'audio2.wav'],
-            'LoRA参数': [0, np.nan]  # 第二行包含NaN
-        })
-        mock_read_csv.return_value = mock_df
+        # Mock包含null值的JSON数据
+        mock_json_load.return_value = [
+            {"章节": "第一章", "内容": "内容1", "故事板提示词": "提示词1", "语音文件": "audio1.wav", "LoRA编号": 0},
+            {"章节": "第二章", "内容": "内容2", "故事板提示词": None, "语音文件": "audio2.wav", "LoRA编号": None}
+        ]
         
-        prompts, lora_params = get_prompts("test.csv")
+        prompts, lora_params = get_prompts("test.json")
         
-        # 验证NaN值被正确处理
+        # 验证null值被正确处理
         assert prompts[0] == "提示词1"
-        assert prompts[1] == ""  # NaN应该被转换为空字符串
+        assert prompts[1] == ""  # None应该被转换为空字符串
         assert lora_params[0] == 0
-        assert lora_params[1] == 0  # NaN应该被转换为0
+        assert lora_params[1] == ""  # None应该被转换为空字符串
     
     def test_file_path_handling(self, temp_dir):
         """测试文件路径处理"""

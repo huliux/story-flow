@@ -117,6 +117,7 @@ class TestConfig:
         # 测试所有文件属性都是Path对象
         assert isinstance(config.input_md_file, Path)
         assert isinstance(config.output_csv_file, Path)
+        assert isinstance(config.output_json_file, Path)
         assert isinstance(config.params_json_file, Path)
     
     def test_llm_configuration(self):
