@@ -177,6 +177,23 @@ def run_image_generator(auto_mode=False):
     """
     print("\n正在生成图像...")
     
+    # 检查配置的图像生成服务
+    image_service = config.image_generation_service
+    print(f"使用图像生成服务: {image_service}")
+    
+    # 根据配置选择不同的生成方式
+    if image_service == 'liblib':
+        return run_liblib_generator(auto_mode)
+    elif image_service == 'stable_diffusion':
+        return run_stable_diffusion_generator(auto_mode)
+    else:
+        # 使用图像服务管理器（支持自动选择和回退）
+        return run_image_service_manager(auto_mode)
+
+def run_stable_diffusion_generator(auto_mode=False):
+    """运行Stable Diffusion图像生成器"""
+    print("使用Stable Diffusion服务生成图像...")
+    
     # 根据参数决定是否设置自动化模式环境变量
     env = os.environ.copy()
     if auto_mode:
@@ -190,13 +207,121 @@ def run_image_generator(auto_mode=False):
         )
         
         if result.returncode == 0:
-            print("✅ 图像生成器执行成功")
+            print("✅ Stable Diffusion图像生成成功")
             return True
         else:
-            print("❌ 图像生成器执行失败")
+            print("❌ Stable Diffusion图像生成失败")
             return False
     except Exception as e:
-        print(f"运行图像生成器时出错: {e}")
+        print(f"运行Stable Diffusion生成器时出错: {e}")
+        return False
+
+def run_liblib_generator(auto_mode=False):
+    """运行LiblibAI图像生成器"""
+    print("使用LiblibAI服务生成图像...")
+    
+    try:
+        # 检查必要的文件
+        json_file = config.output_json_file
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        output_dir = config.output_dir_image
+        
+        # 使用liblib独立脚本
+        cmd = [
+            sys.executable, 
+            "src/liblib_standalone.py",
+            "--json-file", str(json_file),
+            "--output-dir", str(output_dir),
+            "--use-f1"  # 默认使用F.1模型
+        ]
+        
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("✅ LiblibAI图像生成成功")
+            return True
+        else:
+            print("❌ LiblibAI图像生成失败")
+            return False
+    except Exception as e:
+        print(f"运行LiblibAI生成器时出错: {e}")
+        return False
+
+def run_image_service_manager(auto_mode=False):
+    """运行图像服务管理器（支持自动选择和回退）"""
+    print("使用图像服务管理器生成图像...")
+    
+    try:
+        # 检查必要的文件
+        json_file = config.output_json_file
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        output_dir = config.output_dir_image
+        
+        # 使用图像服务管理器
+        cmd = [
+            sys.executable, 
+            "-m", "src.pipeline.image_service_manager",
+            "--json-file", str(json_file),
+            "--output-dir", str(output_dir)
+        ]
+        
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("✅ 图像服务管理器执行成功")
+            return True
+        else:
+            print("❌ 图像服务管理器执行失败")
+            return False
+    except Exception as e:
+        print(f"运行图像服务管理器时出错: {e}")
+        return False
+
+def run_liblib_standalone():
+    """运行LiblibAI独立生图工具 - 自动执行批量生图"""
+    print("\n🎨 LiblibAI 独立生图工具")
+    print("="*40)
+    
+    try:
+        # 直接执行批量生图逻辑，不再显示菜单
+        json_file = config.output_json_file
+        if not json_file.exists():
+            print(f"❌ JSON文件不存在: {json_file}")
+            print("请先运行 '生成故事板' 步骤")
+            return False
+        
+        output_dir = config.output_dir_image
+        
+        # 默认使用F.1模型，不再询问用户
+        cmd = [
+            sys.executable, 
+            "src/liblib_standalone.py",
+            "--json-file", str(json_file),
+            "--output-dir", str(output_dir),
+            "--use-f1"  # 默认使用F.1模型
+        ]
+        
+        print(f"\n正在从 {json_file} 批量生成图像...")
+        print("使用F.1模型进行生成")
+        
+        # 执行命令，不捕获输出以显示实时进度条
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("\n✅ LiblibAI图像生成成功")
+            return True
+        else:
+            print(f"\n❌ LiblibAI图像生成失败，退出码: {result.returncode}")
+            return False
+            
+    except Exception as e:
+        print(f"\n❌ 运行LiblibAI生图工具时出错: {e}")
         return False
 
 def run_voice_synthesizer():
@@ -213,20 +338,49 @@ def run_video_composer():
     print("\n正在合成视频...")
     return run_pipeline_module("video_composer")
 
+def run_semantic_analyzer():
+    """运行语义分析器"""
+    print("\n🔍 语义分析器")
+    print("="*40)
+    
+    # 检查输入文件是否存在
+    if not config.input_md_file.exists():
+        print(f"❌ 输入文件不存在: {config.input_md_file}")
+        print("请先运行 '故事生成' 步骤")
+        return False
+    
+    try:
+        # 运行语义分析器
+        cmd = [sys.executable, "src/semantic_analyzer.py"]
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("\n✅ 语义分析完成")
+            return True
+        else:
+            print(f"\n❌ 语义分析失败，退出码: {result.returncode}")
+            return False
+            
+    except Exception as e:
+        print(f"\n❌ 运行语义分析器时出错: {e}")
+        return False
+
 def display_main_menu():
     """显示主菜单"""
     print("\n" + "="*50)
     print("📚 Story Flow - AI故事视频生成器")
     print("="*50)
     print("请选择要执行的操作:")
-    print("  1. 🚀 自动执行所有流程 (推荐)")
-    print("  2. ✍️  生成新故事 (AI创作)")
-    print("  3. 📊 生成故事板 (CSV文件)")
-    print("  4. 🖼️  生成图像")
-    print("  5. 🎵 生成音频")
-    print("  6. 🎥 合成视频")
-    print("  7. 🧹 清理输出文件")
-    print("  8. ❓ 显示帮助")
+    print("  1. 🚀 一键生成")
+    print("  2. ✍️  故事生成 ")
+    print("  3. 🔍 语义分析")
+    print("  4. 📊 生成分镜")
+    print("  5. 🖼️  生成图像")
+    print("  6. 🎨 LiblibAI")
+    print("  7. 🎵 生成音频")
+    print("  8. 🎥 合成视频")
+    print("  9. 🧹 清理文件")
+    print("  10. ❓ 显示帮助")
     print("  0. 🚪 退出程序")
     print("")
     print("-"*60)
@@ -263,11 +417,11 @@ def get_user_choice():
     """获取用户选择"""
     while True:
         try:
-            choice = input("请输入选项编号 (0-8): ").strip()
-            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8']:
+            choice = input("请输入选项编号 (0-10): ").strip()
+            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
                 return int(choice)
             else:
-                print("❌ 无效选项，请输入 0-8 之间的数字")
+                print("❌ 无效选项，请输入 0-10 之间的数字")
         except (ValueError, KeyboardInterrupt):
             print("\n❌ 输入无效，请重新输入")
 
@@ -306,37 +460,49 @@ def run_interactive_mode():
             else:
                 print("\n❌ 故事生成失败")
         elif choice == 3:
+            success = run_semantic_analyzer()
+            if success:
+                print("\n✅ 语义分析完成")
+            else:
+                print("\n❌ 语义分析失败")
+        elif choice == 4:
             if ensure_input_file():
                 success = run_pipeline_module("text_analyzer")
                 if success:
                     print("\n✅ 故事板生成完成")
                 else:
                     print("\n❌ 故事板生成失败")
-        elif choice == 4:
+        elif choice == 5:
             if ensure_input_file():
                 success = run_image_generator()
                 if success:
                     print("\n✅ 图像生成完成")
                 else:
                     print("\n❌ 图像生成失败")
-        elif choice == 5:
+        elif choice == 6:
+            success = run_liblib_standalone()
+            if success:
+                print("\n✅ LiblibAI图像生成完成")
+            else:
+                print("\n❌ LiblibAI图像生成失败")
+        elif choice == 7:
             if ensure_input_file():
                 success = run_pipeline_module("voice_synthesizer")
                 if success:
                     print("\n✅ 音频生成完成")
                 else:
                     print("\n❌ 音频生成失败")
-        elif choice == 6:
+        elif choice == 8:
             if ensure_input_file():
                 success = run_pipeline_module("video_composer")
                 if success:
                     print("\n✅ 视频合成完成")
                 else:
                     print("\n❌ 视频合成失败")
-        elif choice == 7:
+        elif choice == 9:
             clean_output_files()
             print("\n✅ 输出文件清理完成")
-        elif choice == 8:
+        elif choice == 10:
             display_help()
         
         # 如果不是退出，询问是否继续
@@ -359,9 +525,11 @@ def parse_arguments():
   python main.py              # 启动交互式菜单
   python main.py --auto       # 自动执行所有流程
   python main.py --generate   # 仅生成新故事
+  python main.py --semantic   # 仅执行语义分析
   python main.py --split      # 仅执行文本分割
   python main.py --analyze    # 仅生成故事板
   python main.py --images     # 仅生成图像
+  python main.py --liblib     # 使用LiblibAI生成图像
   python main.py --audio      # 仅生成音频
   python main.py --video      # 仅合成视频
         """
@@ -371,12 +539,16 @@ def parse_arguments():
                        help='自动执行所有流程')
     parser.add_argument('--generate', action='store_true', 
                        help='仅生成新故事')
+    parser.add_argument('--semantic', action='store_true', 
+                       help='仅执行语义分析')
     parser.add_argument('--split', action='store_true', 
                        help='仅执行文本分割')
     parser.add_argument('--analyze', action='store_true', 
                        help='仅生成故事板')
     parser.add_argument('--images', action='store_true', 
                        help='仅生成图像')
+    parser.add_argument('--liblib', action='store_true', 
+                       help='使用LiblibAI生成图像')
     parser.add_argument('--audio', action='store_true', 
                        help='仅生成音频')
     parser.add_argument('--video', action='store_true', 
@@ -407,7 +579,7 @@ def main():
     args = parse_arguments()
     
     # 如果没有命令行参数，检查input.md文件是否存在且有效
-    if not any([args.auto, args.generate, args.split, args.analyze, args.images, args.audio, args.video, args.help_detailed]):
+    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.help_detailed]):
         if not story_generator.check_input_file_exists():
             print("\n📝 检测到没有有效的input.md文件")
             success = story_generator.generate_and_save_story()
@@ -428,6 +600,10 @@ def main():
         success = story_generator.generate_and_save_story()
         print("\n✅ 故事生成完成" if success else "\n❌ 故事生成失败")
         return success
+    elif args.semantic:
+        success = run_semantic_analyzer()
+        print("\n✅ 语义分析完成" if success else "\n❌ 语义分析失败")
+        return success
     elif args.split:
         success = run_text_splitter()
         print("\n✅ 文本分割完成" if success else "\n❌ 文本分割失败")
@@ -439,6 +615,10 @@ def main():
     elif args.images:
         success = run_image_generator()
         print("\n✅ 图像生成完成" if success else "\n❌ 图像生成失败")
+        return success
+    elif args.liblib:
+        success = run_liblib_standalone()
+        print("\n✅ LiblibAI图像生成完成" if success else "\n❌ LiblibAI图像生成失败")
         return success
     elif args.audio:
         success = run_voice_synthesizer()

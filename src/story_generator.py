@@ -5,6 +5,8 @@
 """
 
 import os
+import sys
+import subprocess
 from pathlib import Path
 from typing import Optional
 from src.config import config
@@ -221,6 +223,15 @@ class StoryGenerator:
             if success:
                 print("\n🎉 故事生成完成！")
                 print(f"您可以在 {self.input_file} 中查看生成的故事")
+                
+                # 自动执行语义分析
+                print("\n🔍 正在自动执行语义分析...")
+                semantic_success = self.run_semantic_analyzer()
+                if semantic_success:
+                    print("✅ 语义分析完成")
+                else:
+                    print("⚠️ 语义分析失败，但故事生成成功")
+                
                 print("现在可以继续执行后续的处理流程")
                 return True
             else:
@@ -292,6 +303,15 @@ class StoryGenerator:
                 print(f"\n✅ 故事已保存到: {self.input_file}")
                 print("\n🎉 故事生成完成！")
                 print(f"您可以在 {self.input_file} 中查看生成的故事")
+                
+                # 自动执行语义分析
+                print("\n🔍 正在自动执行语义分析...")
+                semantic_success = self.run_semantic_analyzer()
+                if semantic_success:
+                    print("✅ 语义分析完成")
+                else:
+                    print("⚠️ 语义分析失败，但故事生成成功")
+                
                 print("现在可以继续执行后续的处理流程")
                 return True
             else:
@@ -299,6 +319,39 @@ class StoryGenerator:
                 
         except Exception as e:
             print(f"❌ 故事生成过程中出现错误: {e}")
+            return False
+    
+    def run_semantic_analyzer(self) -> bool:
+        """运行语义分析器"""
+        try:
+            # 获取项目根目录
+            project_root = Path(__file__).parent.parent
+            semantic_analyzer_path = project_root / "src" / "semantic_analyzer.py"
+            
+            if not semantic_analyzer_path.exists():
+                print(f"❌ 语义分析器文件不存在: {semantic_analyzer_path}")
+                return False
+            
+            # 运行语义分析器
+            result = subprocess.run(
+                [sys.executable, str(semantic_analyzer_path)],
+                cwd=project_root,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                if result.stdout:
+                    print(result.stdout.strip())
+                return True
+            else:
+                print(f"❌ 语义分析器执行失败，退出码: {result.returncode}")
+                if result.stderr:
+                    print(f"错误信息: {result.stderr.strip()}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ 运行语义分析器时出错: {e}")
             return False
 
 # 创建全局实例

@@ -76,6 +76,20 @@ class Config:
         except ValueError:
             return default
     
+    def _get_bool_as_int(self, key: str, default: int = 0) -> int:
+        """获取布尔值配置并转换为整数（0或1）"""
+        value = os.getenv(key, str(default)).lower()
+        if value in ('true', '1', 'yes', 'on'):
+            return 1
+        elif value in ('false', '0', 'no', 'off'):
+            return 0
+        else:
+            # 如果是数字字符串，尝试直接转换
+            try:
+                return int(value)
+            except ValueError:
+                return default
+    
     def _get_list(self, key: str, default: List[str] = None) -> List[str]:
         """获取列表配置（逗号分隔）"""
         if default is None:
@@ -155,6 +169,261 @@ class Config:
     def openai_max_requests(self) -> int:
         return self.llm_max_requests
     
+    # LiblibAI配置
+    @property
+    def liblib_access_key(self) -> str:
+        """LiblibAI访问密钥"""
+        return os.getenv('LIBLIB_ACCESS_KEY', '')
+    
+    @property
+    def liblib_secret_key(self) -> str:
+        """LiblibAI密钥"""
+        return os.getenv('LIBLIB_SECRET_KEY', '')
+    
+    @property
+    def liblib_base_url(self) -> str:
+        """LiblibAI API基础URL"""
+        return os.getenv('LIBLIB_BASE_URL', 'https://openapi.liblibai.cloud')
+    
+    @property
+    def liblib_enabled(self) -> bool:
+        """是否启用LiblibAI服务"""
+        return self._get_bool('LIBLIB_ENABLED', False)
+    
+    @property
+    def liblib_priority(self) -> bool:
+        """是否优先使用LiblibAI服务"""
+        return self._get_bool('LIBLIB_PRIORITY', False)
+    
+    @property
+    def liblib_timeout(self) -> int:
+        """LiblibAI请求超时时间(秒)"""
+        return self._get_int('LIBLIB_TIMEOUT', 30)
+    
+    @property
+    def liblib_max_retries(self) -> int:
+        """LiblibAI最大重试次数"""
+        return self._get_int('LIBLIB_MAX_RETRIES', 3)
+    
+    @property
+    def liblib_retry_delay(self) -> float:
+        """LiblibAI重试延迟(秒)"""
+        return self._get_float('LIBLIB_RETRY_DELAY', 1.0)
+    
+    @property
+    def liblib_max_wait_time(self) -> int:
+        """LiblibAI生图最大等待时间(秒)"""
+        return self._get_int('LIBLIB_MAX_WAIT_TIME', 300)
+    
+    @property
+    def liblib_check_interval(self) -> int:
+        """LiblibAI状态检查间隔(秒)"""
+        return self._get_int('LIBLIB_CHECK_INTERVAL', 5)
+    
+    @property
+    def liblib_trigger_words(self) -> str:
+        """LiblibAI触发词，会自动添加到提示词前面"""
+        return os.getenv('LIBLIB_TRIGGER_WORDS', '')
+    
+    @property
+    def liblib_negative_prompt(self) -> str:
+        """LiblibAI负向提示词，用于排除不想要的内容"""
+        return os.getenv('LIBLIB_NEGATIVE_PROMPT', '')
+    
+    @property
+    def liblib_default_steps(self) -> int:
+        """LiblibAI默认采样步数"""
+        return self._get_int('LIBLIB_DEFAULT_STEPS', 30)
+    
+    @property
+    def liblib_default_aspect_ratio(self) -> str:
+        """LiblibAI默认宽高比"""
+        return os.getenv('LIBLIB_DEFAULT_ASPECT_RATIO', 'square')
+    
+    # F.1文生图默认配置（仅保留F.1 API支持的参数）
+    @property
+    def f1_default_width(self) -> int:
+        """F.1默认图片宽度"""
+        return self._get_int('F1_DEFAULT_WIDTH', 768)
+    
+    @property
+    def f1_default_height(self) -> int:
+        """F.1默认图片高度"""
+        return self._get_int('F1_DEFAULT_HEIGHT', 1024)
+    
+    @property
+    def f1_default_steps(self) -> int:
+        """F.1默认采样步数"""
+        return self._get_int('F1_DEFAULT_STEPS', 20)
+    
+    @property
+    def f1_default_img_count(self) -> int:
+        """F.1默认生成图片数量"""
+        return self._get_int('F1_DEFAULT_IMG_COUNT', 1)
+    
+    @property
+    def f1_default_restore_faces(self) -> int:
+        """F.1默认面部修复设置"""
+        return self._get_bool_as_int('F1_DEFAULT_RESTORE_FACES', 0)
+    
+    @property
+    def f1_default_seed(self) -> int:
+        """F.1默认随机种子（-1表示随机）"""
+        return self._get_int('F1_DEFAULT_SEED', -1)
+    
+    @property
+    def f1_default_template_uuid(self) -> str:
+        """F.1默认参数模板ID"""
+        return os.getenv('F1_DEFAULT_TEMPLATE_UUID', '6f7c4652458d4802969f8d089cf5b91f')
+    
+    @property
+    def f1_default_checkpoint_id(self) -> Optional[str]:
+        """F.1默认底模ID"""
+        value = os.getenv('F1_DEFAULT_CHECKPOINT_ID', '').strip()
+        return value if value else None
+    
+    @property
+    def f1_default_vae_id(self) -> Optional[str]:
+        """F.1默认VAE模型ID"""
+        value = os.getenv('F1_DEFAULT_VAE_ID', '').strip()
+        return value if value else None
+    
+    # F.1高级参数配置
+    @property
+    def f1_default_cfg_scale(self) -> float:
+        """F.1默认CFG Scale"""
+        return self._get_float('F1_DEFAULT_CFG_SCALE', 3.5)
+    
+    @property
+    def f1_default_clip_skip(self) -> int:
+        """F.1默认CLIP Skip"""
+        return self._get_int('F1_DEFAULT_CLIP_SKIP', 2)
+    
+    @property
+    def f1_default_sampler(self) -> int:
+        """F.1默认采样器"""
+        return self._get_int('F1_DEFAULT_SAMPLER', 1)
+    
+    @property
+    def f1_default_randn_source(self) -> int:
+        """F.1默认随机种子来源"""
+        return self._get_int('F1_DEFAULT_RANDN_SOURCE', 0)
+    
+    # F.1图生图特有参数
+    @property
+    def f1_default_resize_mode(self) -> int:
+        """F.1默认缩放模式"""
+        return self._get_int('F1_DEFAULT_RESIZE_MODE', 0)
+    
+    @property
+    def f1_default_resized_width(self) -> int:
+        """F.1默认缩放后宽度"""
+        return self._get_int('F1_DEFAULT_RESIZED_WIDTH', 1024)
+    
+    @property
+    def f1_default_resized_height(self) -> int:
+        """F.1默认缩放后高度"""
+        return self._get_int('F1_DEFAULT_RESIZED_HEIGHT', 1024)
+    
+    @property
+    def f1_default_mode(self) -> int:
+        """F.1默认模式（0图生图，4蒙版重绘）"""
+        return self._get_int('F1_DEFAULT_MODE', 0)
+    
+    @property
+    def f1_default_denoising_strength(self) -> float:
+        """F.1默认重绘幅度"""
+        return self._get_float('F1_DEFAULT_DENOISING_STRENGTH', 0.75)
+    
+    # F.1高分辨率修复配置
+    @property
+    def f1_default_hires_enabled(self) -> bool:
+        """F.1默认是否启用高分辨率修复"""
+        return self._get_bool('F1_DEFAULT_HIRES_ENABLED', False)
+    
+    @property
+    def f1_default_hires_steps(self) -> int:
+        """F.1默认高分辨率修复步数"""
+        return self._get_int('F1_DEFAULT_HIRES_STEPS', 20)
+    
+    @property
+    def f1_default_hires_denoising_strength(self) -> float:
+        """F.1默认高分辨率修复重绘幅度"""
+        return self._get_float('F1_DEFAULT_HIRES_DENOISING_STRENGTH', 0.75)
+    
+    @property
+    def f1_default_upscaler(self) -> int:
+        """F.1默认放大算法"""
+        return self._get_int('F1_DEFAULT_UPSCALER', 10)
+    
+    @property
+    def f1_default_hires_resized_width(self) -> int:
+        """F.1默认高分辨率修复宽度"""
+        return self._get_int('F1_DEFAULT_HIRES_RESIZED_WIDTH', 1024)
+    
+    @property
+    def f1_default_hires_resized_height(self) -> int:
+        """F.1默认高分辨率修复高度"""
+        return self._get_int('F1_DEFAULT_HIRES_RESIZED_HEIGHT', 1536)
+    
+    # F.1局部重绘配置
+    @property
+    def f1_default_mask_blur(self) -> int:
+        """F.1默认蒙版模糊度"""
+        return self._get_int('F1_DEFAULT_MASK_BLUR', 4)
+    
+    @property
+    def f1_default_mask_padding(self) -> int:
+        """F.1默认蒙版边缘预留像素"""
+        return self._get_int('F1_DEFAULT_MASK_PADDING', 32)
+    
+    @property
+    def f1_default_mask_mode(self) -> int:
+        """F.1默认蒙版模式"""
+        return self._get_int('F1_DEFAULT_MASK_MODE', 0)
+    
+    @property
+    def f1_default_inpaint_area(self) -> int:
+        """F.1默认重绘区域"""
+        return self._get_int('F1_DEFAULT_INPAINT_AREA', 0)
+    
+    @property
+    def f1_default_inpainting_fill(self) -> int:
+        """F.1默认蒙版内容填充模式"""
+        return self._get_int('F1_DEFAULT_INPAINTING_FILL', 1)
+    
+    # F.1 AdditionalNetwork (LoRA) 配置
+    @property
+    def f1_default_additional_network_model_id(self) -> str:
+        """F.1默认LoRA模型ID"""
+        return os.getenv('F1_DEFAULT_ADDITIONAL_NETWORK_MODEL_ID', '')
+    
+    @property
+    def f1_default_additional_network_weight(self) -> float:
+        """F.1默认LoRA权重"""
+        return self._get_float('F1_DEFAULT_ADDITIONAL_NETWORK_WEIGHT', 1.0)
+    
+    @property
+    def f1_default_additional_network_enabled(self) -> bool:
+        """F.1默认是否启用LoRA网络"""
+        return self._get_bool('F1_DEFAULT_ADDITIONAL_NETWORK_ENABLED', False)
+
+    # 图像生成服务选择配置
+    @property
+    def image_generation_service(self) -> str:
+        """图像生成服务选择：'stable_diffusion' 或 'liblib'"""
+        return os.getenv('IMAGE_GENERATION_SERVICE', 'stable_diffusion')
+    
+    @property
+    def image_service_priority(self) -> str:
+        """图像服务优先级：'stable_diffusion_first' 或 'liblib_first'"""
+        return os.getenv('IMAGE_SERVICE_PRIORITY', 'stable_diffusion_first')
+    
+    @property
+    def image_service_fallback_enabled(self) -> bool:
+        """是否启用图像服务回退机制"""
+        return self._get_bool('IMAGE_SERVICE_FALLBACK_ENABLED', True)
+
     # Azure语音服务配置
     @property
     def azure_speech_key(self) -> str:

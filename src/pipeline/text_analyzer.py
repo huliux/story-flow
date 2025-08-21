@@ -52,7 +52,22 @@ def merge_short_sentences(sentences, min_length=None):
 
 # 定义一个函数，通过模型一次性处理所有字段
 def process_all_fields_with_model(data_list, character_mappings, story_content):
-    """通过模型一次性处理所有字段"""
+    """通过模型分批处理所有字段"""
+    # 分批处理，每批最多1个条目
+    batch_size = 1
+    processed_results = []
+    
+    for i in range(0, len(data_list), batch_size):
+        batch = data_list[i:i + batch_size]
+        print(f"正在处理第 {i//batch_size + 1} 批数据，包含 {len(batch)} 个条目")
+        
+        batch_result = process_batch_with_model(batch, character_mappings, story_content)
+        processed_results.extend(batch_result)
+    
+    return processed_results
+
+def process_batch_with_model(data_batch, character_mappings, story_content):
+    """处理单个批次的数据"""
     # 构建系统提示词
     system_prompt = f"""
 基于以下文件内容：
@@ -63,13 +78,13 @@ def process_all_fields_with_model(data_list, character_mappings, story_content):
 完整故事内容：
 {story_content}
 
-请严格按照以下步骤和处理规则，系统性地处理 {json.dumps(data_list, ensure_ascii=False, indent=2)} 文件中的 JSON 数组。
+请严格按照以下步骤和处理规则，系统性地处理以下 JSON 数组中的数据。
 
 处理规则：
 
 角色识别与替换：
 
-输入： 读取 {json.dumps(data_list, ensure_ascii=False, indent=2)} 中每一个对象的 "原始中文" 字段。
+输入： 读取输入数据中每一个对象的 "原始中文" 字段。
 
 映射依据： 使用提供的角色映射配置（如下所示）作为唯一标准。
 
@@ -122,19 +137,44 @@ LoRA 编号映射：
     
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"请处理以下JSON数据：\n{json.dumps(data_list, ensure_ascii=False, indent=2)}"}
+        {"role": "user", "content": f"请处理以下JSON数据：\n{json.dumps(data_batch, ensure_ascii=False, indent=2)}"}
     ]
     
     response = llm_client.chat_completion(messages)
     
     try:
-        # 尝试解析返回的JSON
-        processed_data = json.loads(response)
+        # 清理响应内容，移除可能的控制字符和格式标记
+        cleaned_response = response.strip()
+        
+        # 移除可能的markdown代码块标记
+        if cleaned_response.startswith('```json'):
+            cleaned_response = cleaned_response[7:]
+        if cleaned_response.startswith('```'):
+            cleaned_response = cleaned_response[3:]
+        if cleaned_response.endswith('```'):
+            cleaned_response = cleaned_response[:-3]
+        
+        # 移除控制字符（保留换行符、制表符和回车符）
+        import re
+        cleaned_response = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', cleaned_response)
+        
+        cleaned_response = cleaned_response.strip()
+        
+        # 检查JSON是否完整，如果不完整则尝试修复
+        if not cleaned_response.endswith(']'):
+            # 找到最后一个完整的对象
+            last_complete_obj = cleaned_response.rfind('},')
+            if last_complete_obj != -1:
+                # 截取到最后一个完整对象，并添加结束符
+                cleaned_response = cleaned_response[:last_complete_obj + 1] + '\n]'
+                print(f"检测到不完整的JSON，已修复为: {len(cleaned_response)} 字符")
+        
+        # 尝试解析清理后的JSON
+        processed_data = json.loads(cleaned_response)
         return processed_data
     except json.JSONDecodeError as e:
         print(f"模型返回的数据不是有效的JSON格式: {e}")
-        print(f"原始返回内容: {response}")
-        return data_list  # 返回原始数据
+        return data_batch  # 返回原始数据
 
 # 章节处理相关函数已移除，采用直接处理模式
 
@@ -279,6 +319,8 @@ def process_single_chapter_json(chapter, output_file_path):
             character_mappings, 
             content
         )
+        
+        # 处理完成
         
         # 读取story_bg并翻译成英文，添加到故事板提示词末尾
         story_bg = None
