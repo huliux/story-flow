@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 LiblibAI批量生图示例
-使用liblib_service读取txt.json文件并批量生成图片
+使用liblib_service读取sd_prompt.json文件并批量生成图片
 """
 
 import sys
@@ -10,20 +10,20 @@ import argparse
 from pathlib import Path
 
 # 添加项目根目录到Python路径
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.pipeline.liblib_service import LiblibService, LiblibConfig
+from src.services.image.liblib_service import LiblibService, LiblibConfig
 from src.config import config
 
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='LiblibAI批量图像生成')
     parser.add_argument('--input', '-i', 
-                       default='/Users/forest/story-flow/data/output/processed/txt.json',
-                       help='输入的JSON文件路径')
+                       default='data/output/processed/sd_prompt.json',
+                       help='输入的JSON文件路径（支持新旧格式）')
     parser.add_argument('--output', '-o', 
-                       default='/Users/forest/story-flow/data/output/images',
+                       default='data/output/images',
                        help='输出图片目录')
     parser.add_argument('--use-f1', action='store_true', default=True,
                        help='使用F.1模型（默认启用）')
@@ -71,7 +71,7 @@ def main():
             return False
         
         # 初始化LiblibService
-        service = LiblibService(liblib_config)
+        service = LiblibService(liblib_config, config)
         
         # 执行批量生图
         print("\n开始批量生图...")

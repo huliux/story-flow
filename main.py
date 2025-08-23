@@ -24,6 +24,7 @@ sys.path.insert(0, str(project_root))
 
 from src.config import config
 from src.story_generator import story_generator
+from src.viral_video_generator import viral_video_generator
 
 # 要运行的模块列表（按顺序执行）
 MODULES = [
@@ -79,8 +80,8 @@ def run_pipeline_module(module_name):
         cmd = [sys.executable, "-m", f"src.pipeline.{module_name}"]
         
         # 对于需要用户交互或需要显示进度的模块，直接运行不捕获输出
-        if module_name in ["image_generator", "text_analyzer"]:
-            result = subprocess.run(cmd, cwd=project_root)
+        if module_name in ["image_generator", "text_analyzer", "voice_synthesizer", "video_composer"]:
+            result = subprocess.run(cmd, cwd=project_root, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         else:
             result = subprocess.run(
                 cmd,
@@ -177,34 +178,47 @@ def run_image_generator(auto_mode=False):
     """
     print("\n正在生成图像...")
     
+    try:
+        # 先获取JSON文件路径（只选择一次）
+        json_file = config.output_json_file
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+    except FileNotFoundError:
+        print("❌ 未找到有效的JSON文件")
+        return False
+    except KeyboardInterrupt:
+        print("\n❌ 用户取消操作")
+        return False
+    
     # 检查配置的图像生成服务
     image_service = config.image_generation_service
     print(f"使用图像生成服务: {image_service}")
     
-    # 根据配置选择不同的生成方式
+    # 根据配置选择不同的生成方式，传递已选择的JSON文件路径
     if image_service == 'liblib':
-        return run_liblib_generator(auto_mode)
+        return run_liblib_generator_with_file(json_file, auto_mode)
     elif image_service == 'stable_diffusion':
-        return run_stable_diffusion_generator(auto_mode)
+        return run_stable_diffusion_generator_with_file(json_file, auto_mode)
     else:
         # 使用图像服务管理器（支持自动选择和回退）
-        return run_image_service_manager(auto_mode)
+        return run_image_service_manager_with_file(json_file, auto_mode)
 
-def run_stable_diffusion_generator(auto_mode=False):
-    """运行Stable Diffusion图像生成器"""
+def run_stable_diffusion_generator_with_file(json_file, auto_mode=False):
+    """运行Stable Diffusion图像生成器（使用指定的JSON文件）"""
     print("使用Stable Diffusion服务生成图像...")
     
-    # 根据参数决定是否设置自动化模式环境变量
-    env = os.environ.copy()
-    if auto_mode:
-        env['AUTO_MODE'] = 'true'
-    
     try:
-        result = subprocess.run(
-            [sys.executable, "-m", "src.pipeline.image_generator"],
-            cwd=project_root,
-            env=env
-        )
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        # 构建命令，传递JSON文件路径
+        cmd = [sys.executable, "-m", "src.pipeline.image_generator", "--json-file", str(json_file)]
+        if auto_mode:
+            cmd.append("--auto")
+        
+        result = subprocess.run(cmd, cwd=project_root)
         
         if result.returncode == 0:
             print("✅ Stable Diffusion图像生成成功")
@@ -216,20 +230,86 @@ def run_stable_diffusion_generator(auto_mode=False):
         print(f"运行Stable Diffusion生成器时出错: {e}")
         return False
 
+def run_stable_diffusion_generator(auto_mode=False):
+    """运行Stable Diffusion图像生成器"""
+    print("使用Stable Diffusion服务生成图像...")
+    
+    try:
+        # 先获取JSON文件路径（可能触发用户选择）
+        json_file = config.output_json_file
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        # 构建命令，传递JSON文件路径
+        cmd = [sys.executable, "-m", "src.pipeline.image_generator", "--json-file", str(json_file)]
+        if auto_mode:
+            cmd.append("--auto")
+        
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("✅ Stable Diffusion图像生成成功")
+            return True
+        else:
+            print("❌ Stable Diffusion图像生成失败")
+            return False
+    except FileNotFoundError:
+        print("❌ 未找到有效的JSON文件")
+        return False
+    except KeyboardInterrupt:
+        print("\n❌ 用户取消操作")
+        return False
+    except Exception as e:
+        print(f"运行Stable Diffusion生成器时出错: {e}")
+        return False
+
+def run_liblib_generator_with_file(json_file, auto_mode=False):
+    """运行LiblibAI图像生成器（使用指定的JSON文件）"""
+    print("使用LiblibAI服务生成图像...")
+    
+    try:
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        # 构建命令，传递JSON文件路径
+        cmd = [sys.executable, "-m", "src.liblib_standalone", "--json-file", str(json_file)]
+        
+        result = subprocess.run(cmd, cwd=project_root)
+        
+        if result.returncode == 0:
+            print("✅ LiblibAI图像生成成功")
+            return True
+        else:
+            print("❌ LiblibAI图像生成失败")
+            return False
+    except Exception as e:
+        print(f"运行LiblibAI生成器时出错: {e}")
+        return False
+
 def run_liblib_generator(auto_mode=False):
     """运行LiblibAI图像生成器"""
     print("使用LiblibAI服务生成图像...")
     
     try:
-        # 检查必要的文件
-        json_file = config.output_json_file
+        # 获取JSON文件路径（可能会触发用户选择）
+        try:
+            json_file = config.output_json_file
+        except FileNotFoundError as e:
+            print(f"❌ {e}")
+            return False
+        except KeyboardInterrupt:
+            print("\n操作已取消")
+            return False
+            
         if not json_file.exists():
             print(f"错误: JSON文件不存在 - {json_file}")
             return False
         
         output_dir = config.output_dir_image
         
-        # 使用liblib独立脚本
+        # 使用liblib独立脚本，直接传递选择的JSON文件路径
         cmd = [
             sys.executable, 
             "src/liblib_standalone.py",
@@ -250,6 +330,33 @@ def run_liblib_generator(auto_mode=False):
         print(f"运行LiblibAI生成器时出错: {e}")
         return False
 
+def run_image_service_manager_with_file(json_file, auto_mode=False):
+    """运行图像服务管理器（使用指定的JSON文件）"""
+    print("使用图像服务管理器生成图像...")
+    
+    try:
+        if not json_file.exists():
+            print(f"错误: JSON文件不存在 - {json_file}")
+            return False
+        
+        # 使用新的图像管理器架构
+        from src.managers.image_manager import ImageManager
+        
+        manager = ImageManager()
+        
+        # 从JSON文件批量生成图像
+        success = manager.batch_generate_from_json(str(json_file))
+        
+        if success:
+            print("✅ 图像服务管理器执行成功")
+            return True
+        else:
+            print("❌ 图像服务管理器执行失败")
+            return False
+    except Exception as e:
+        print(f"运行图像服务管理器时出错: {e}")
+        return False
+
 def run_image_service_manager(auto_mode=False):
     """运行图像服务管理器（支持自动选择和回退）"""
     print("使用图像服务管理器生成图像...")
@@ -261,19 +368,15 @@ def run_image_service_manager(auto_mode=False):
             print(f"错误: JSON文件不存在 - {json_file}")
             return False
         
-        output_dir = config.output_dir_image
+        # 使用新的图像管理器架构
+        from src.managers.image_manager import ImageManager
         
-        # 使用图像服务管理器
-        cmd = [
-            sys.executable, 
-            "-m", "src.pipeline.image_service_manager",
-            "--json-file", str(json_file),
-            "--output-dir", str(output_dir)
-        ]
+        manager = ImageManager()
         
-        result = subprocess.run(cmd, cwd=project_root)
+        # 从JSON文件批量生成图像
+        success = manager.batch_generate_from_json(str(json_file))
         
-        if result.returncode == 0:
+        if success:
             print("✅ 图像服务管理器执行成功")
             return True
         else:
@@ -289,8 +392,17 @@ def run_liblib_standalone():
     print("="*40)
     
     try:
-        # 直接执行批量生图逻辑，不再显示菜单
-        json_file = config.output_json_file
+        # 使用新的自动选择逻辑获取JSON文件
+        try:
+            json_file = config.output_json_file
+        except FileNotFoundError as e:
+            print(f"❌ {e}")
+            print("请先运行 '生成故事板' 步骤")
+            return False
+        except KeyboardInterrupt:
+            print("\n操作已取消")
+            return False
+        
         if not json_file.exists():
             print(f"❌ JSON文件不存在: {json_file}")
             print("请先运行 '生成故事板' 步骤")
@@ -326,17 +438,67 @@ def run_liblib_standalone():
 
 def run_voice_synthesizer():
     """运行语音合成器"""
+    print("\n🎵 开始生成音频...")
+    
+    # 检查章节文件
     if not ensure_chapters_file():
         return False
-    print("\n正在生成音频...")
-    return run_pipeline_module("voice_synthesizer")
+    
+    # 获取JSON文件路径
+    try:
+        json_file_path = config.output_json_file
+        success = run_voice_synthesizer_with_file(str(json_file_path))
+    except (FileNotFoundError, KeyboardInterrupt) as e:
+        if isinstance(e, KeyboardInterrupt):
+            print("\n用户取消操作")
+        else:
+            print(f"\n❌ 未找到JSON文件: {e}")
+        return False
+    
+    if success:
+        print("\n✅ 音频生成完成")
+    else:
+        print("\n❌ 音频生成失败")
+    
+    return success
+
+def run_voice_synthesizer_with_file(json_file_path):
+    """使用指定的JSON文件运行语音合成器"""
+    cmd = [sys.executable, "-m", "src.pipeline.voice_synthesizer", "--json-file", json_file_path]
+    result = subprocess.run(cmd, cwd=project_root)
+    return result.returncode == 0
 
 def run_video_composer():
     """运行视频合成器"""
+    print("\n🎥 开始合成视频...")
+    
+    # 检查章节文件
     if not ensure_chapters_file():
         return False
-    print("\n正在合成视频...")
-    return run_pipeline_module("video_composer")
+    
+    # 获取JSON文件路径
+    try:
+        json_file_path = config.output_json_file
+        success = run_video_composer_with_file(str(json_file_path))
+    except (FileNotFoundError, KeyboardInterrupt) as e:
+        if isinstance(e, KeyboardInterrupt):
+            print("\n用户取消操作")
+        else:
+            print(f"\n❌ 未找到JSON文件: {e}")
+        return False
+    
+    if success:
+        print("\n✅ 视频合成完成")
+    else:
+        print("\n❌ 视频合成失败")
+    
+    return success
+
+def run_video_composer_with_file(json_file_path):
+    """使用指定的JSON文件运行视频合成器"""
+    cmd = [sys.executable, "-m", "src.pipeline.video_composer", "--json-file", json_file_path]
+    result = subprocess.run(cmd, cwd=project_root)
+    return result.returncode == 0
 
 def run_semantic_analyzer():
     """运行语义分析器"""
@@ -372,15 +534,16 @@ def display_main_menu():
     print("="*50)
     print("请选择要执行的操作:")
     print("  1. 🚀 一键生成")
-    print("  2. ✍️  故事生成 ")
-    print("  3. 🔍 语义分析")
+    print("  2. ✍️  故事创作 ")
+    print("  3. 🔍 角色识别")
     print("  4. 📊 生成分镜")
-    print("  5. 🖼️  生成图像")
-    print("  6. 🎨 LiblibAI")
+    print("  5. 🖼️  SD生图")
+    print("  6. 🎨 F1生图")
     print("  7. 🎵 生成音频")
     print("  8. 🎥 合成视频")
-    print("  9. 🧹 清理文件")
-    print("  10. ❓ 显示帮助")
+    print("  9. 🎬 爆款文案")
+    print("  10. 🧹 清理文件")
+    print("  11. ❓ 显示帮助")
     print("  0. 🚪 退出程序")
     print("")
     print("-"*60)
@@ -417,11 +580,11 @@ def get_user_choice():
     """获取用户选择"""
     while True:
         try:
-            choice = input("请输入选项编号 (0-10): ").strip()
-            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']:
+            choice = input("请输入选项编号 (0-11): ").strip()
+            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']:
                 return int(choice)
             else:
-                print("❌ 无效选项，请输入 0-10 之间的数字")
+                print("❌ 无效选项，请输入 0-11 之间的数字")
         except (ValueError, KeyboardInterrupt):
             print("\n❌ 输入无效，请重新输入")
 
@@ -500,9 +663,15 @@ def run_interactive_mode():
                 else:
                     print("\n❌ 视频合成失败")
         elif choice == 9:
+            success = viral_video_generator.generate_complete_workflow()
+            if success:
+                print("\n✅ 爆款视频大纲和提示词生成完成")
+            else:
+                print("\n❌ 爆款视频生成失败")
+        elif choice == 10:
             clean_output_files()
             print("\n✅ 输出文件清理完成")
-        elif choice == 10:
+        elif choice == 11:
             display_help()
         
         # 如果不是退出，询问是否继续
@@ -532,6 +701,7 @@ def parse_arguments():
   python main.py --liblib     # 使用LiblibAI生成图像
   python main.py --audio      # 仅生成音频
   python main.py --video      # 仅合成视频
+  python main.py --viral      # 生成爆款视频大纲和提示词
         """
     )
     
@@ -553,6 +723,8 @@ def parse_arguments():
                        help='仅生成音频')
     parser.add_argument('--video', action='store_true', 
                        help='仅合成视频')
+    parser.add_argument('--viral', action='store_true', 
+                       help='生成爆款视频大纲和提示词')
     parser.add_argument('--help-detailed', action='store_true', 
                        help='显示详细帮助信息')
     
@@ -579,7 +751,7 @@ def main():
     args = parse_arguments()
     
     # 如果没有命令行参数，检查input.md文件是否存在且有效
-    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.help_detailed]):
+    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.viral, args.help_detailed]):
         if not story_generator.check_input_file_exists():
             print("\n📝 检测到没有有效的input.md文件")
             success = story_generator.generate_and_save_story()
@@ -627,6 +799,10 @@ def main():
     elif args.video:
         success = run_video_composer()
         print("\n✅ 视频合成完成" if success else "\n❌ 视频合成失败")
+        return success
+    elif args.viral:
+        success = viral_video_generator.generate_complete_workflow()
+        print("\n✅ 爆款视频大纲和提示词生成完成" if success else "\n❌ 爆款视频生成失败")
         return success
     else:
         # 默认启动交互式模式

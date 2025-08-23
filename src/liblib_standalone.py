@@ -43,17 +43,17 @@ for path in [str(project_root), str(src_dir)]:
 try:
     # 尝试从src目录导入
     from config import config
-    from pipeline.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
+    from services.image.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
 except ImportError as e1:
     try:
         # 尝试从项目根目录导入
         from src.config import config
-        from src.pipeline.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
+        from src.services.image.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
     except ImportError as e2:
         try:
             # 尝试相对导入
             from .config import config
-            from .pipeline.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
+            from .services.image.liblib_service import LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
         except ImportError as e3:
             print("错误: 无法导入必要的模块，请确保在正确的目录中运行脚本")
             print(f"当前工作目录: {os.getcwd()}")
@@ -338,13 +338,24 @@ def batch_generate_from_json(
         with open(json_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        # 处理txt.json格式，提取"故事板提示词"字段
+        # 处理新的标准化JSON格式，支持向后兼容
         prompts = []
-        if isinstance(data, list):
+        if isinstance(data, dict) and 'storyboards' in data:
+            # 新的标准化格式
+            for item in data['storyboards']:
+                if isinstance(item, dict):
+                    prompt = item.get('english_prompt', '')
+                    if prompt:
+                        prompts.append({
+                            'prompt': prompt,
+                            'original_data': item
+                        })
+        elif isinstance(data, list):
+            # 向后兼容旧格式
             for item in data:
                 if isinstance(item, dict):
-                    # 从"故事板提示词"字段获取prompt
-                    prompt = item.get('故事板提示词', item.get('prompt', ''))
+                    # 优先使用新字段名，然后是旧字段名
+                    prompt = item.get('english_prompt', item.get('故事板提示词', item.get('prompt', '')))
                     if prompt:
                         prompts.append({
                             'prompt': prompt,
@@ -357,7 +368,8 @@ def batch_generate_from_json(
         else:
             print("错误: JSON文件格式不正确")
             print("支持的格式:")
-            print("1. 包含'故事板提示词'字段的对象数组")
+            print("1. 新标准化格式: 包含'storyboards'数组，每个元素有'english_prompt'字段")
+            print("2. 旧格式: 包含'故事板提示词'字段的对象数组（向后兼容）")
             print("2. 字符串数组")
             print("3. 包含'prompts'字段的对象")
             return
@@ -490,7 +502,7 @@ def main():
     if args.seed:
         generation_params['seed'] = args.seed
     if args.restore_faces:
-        generation_params['restore_faces'] = args.restore_faces
+        generation_params['restore_faces'] = 1  # 转换为数字
     if args.negative_prompt:
         generation_params['negative_prompt'] = args.negative_prompt
     

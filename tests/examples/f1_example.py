@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from pipeline.liblib_service import (
+from src.services.image.liblib_service import (
     LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork
 )
 from config import config

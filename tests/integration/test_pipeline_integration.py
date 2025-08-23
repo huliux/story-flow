@@ -51,7 +51,7 @@ class TextAnalyzer:
             ]
         
         # 创建JSON文件
-        output_file = config.output_dir_txt / "txt.json"
+        output_file = config.output_dir_txt / "sd_prompt.json"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_file, 'w', encoding='utf-8') as f:
@@ -243,7 +243,7 @@ class TestPipelineIntegration:
         mock_config.max_workers_translation = 2
         mock_config.validate_config.return_value = []  # 返回空列表表示没有配置错误
         mock_config.sd_api_url = "http://localhost:7860/"
-        mock_config.output_json_file = Path(temp_workspace['output_dir']) / "txt.json"
+        mock_config.output_json_file = Path(temp_workspace['output_dir']) / "sd_prompt.json"
         mock_config.output_dir_txt = Path(temp_workspace['output_dir'])
         mock_config.output_dir_image = Path(temp_workspace['images_dir'])
         mock_config.output_dir_temp = Path(temp_workspace['output_dir']) / "temp"

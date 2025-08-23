@@ -1,3 +1,8 @@
+"""LiblibAI图像生成服务实现
+
+提供LiblibAI API的完整封装，包括F.1模型和传统模型的支持。
+"""
+
 import hmac
 import hashlib
 import base64
@@ -5,14 +10,20 @@ import time
 import uuid
 import requests
 import json
-import os
 from pathlib import Path
 from tqdm import tqdm
 from typing import Dict, Any, Optional, List, Union
 from dataclasses import dataclass, field
 from enum import Enum
 
-from config import Config
+from .base import ImageServiceBase
+from ...models.image_models import (
+    ImageGenerationRequest, 
+    ImageGenerationResponse, 
+    ServiceStatus, 
+    ImageServiceType
+)
+from ...config import Config
 
 
 class GenerateStatus(Enum):
@@ -29,12 +40,6 @@ class AuditStatus(Enum):
     PENDING = 1      # 审核中
     APPROVED = 3     # 审核通过
     REJECTED = 4     # 审核不通过
-
-
-
-
-
-
 
 
 @dataclass
@@ -65,15 +70,6 @@ class HiResFixInfo:
     resized_height: int = 1536  # 调整后高度
 
 
-
-
-
-
-
-
-
-
-
 @dataclass
 class F1GenerationParams:
     """F.1文生图参数类 - 仅支持F.1模型的参数"""
@@ -100,88 +96,83 @@ class F1GenerationParams:
     
     @classmethod
     def from_config(cls, prompt: str, config: Config, **kwargs) -> 'F1GenerationParams':
-        """从配置对象创建F1GenerationParams实例"""
+        """从配置创建F.1参数对象"""
+        # 从配置获取默认值
         defaults = {
             'steps': config.f1_default_steps,
             'width': config.f1_default_width,
             'height': config.f1_default_height,
+            'cfg_scale': config.f1_default_cfg_scale,
+            'negative_prompt': config.liblib_negative_prompt,
             'img_count': config.f1_default_img_count,
             'seed': config.f1_default_seed,
             'restore_faces': config.f1_default_restore_faces,
-            'template_uuid': config.f1_default_template_uuid,
-            'cfg_scale': config.f1_default_cfg_scale,
-            'randn_source': config.f1_default_randn_source,
             'clip_skip': config.f1_default_clip_skip,
             'sampler': config.f1_default_sampler,
+            'randn_source': config.f1_default_randn_source,
+            'template_uuid': config.f1_default_template_uuid
         }
         
-        # 处理AdditionalNetwork配置
-        additional_network = []
+        # 添加AdditionalNetwork默认配置
         if config.f1_default_additional_network_enabled and config.f1_default_additional_network_model_id:
-            additional_network.append(AdditionalNetwork(
+            defaults['additional_network'] = [AdditionalNetwork(
                 model_id=config.f1_default_additional_network_model_id,
                 weight=config.f1_default_additional_network_weight
-            ))
-        defaults['additional_network'] = additional_network
+            )]
         
-        # 处理HiResFixInfo配置 - 根据启用开关决定是否创建高分辨率修复信息
-        hi_res_fix_info = None
+        # 添加HiResFixInfo默认配置
         if config.f1_default_hires_enabled:
-            hi_res_fix_info = HiResFixInfo(
+            defaults['hi_res_fix_info'] = HiResFixInfo(
                 hires_steps=config.f1_default_hires_steps,
                 hires_denoising_strength=config.f1_default_hires_denoising_strength,
                 upscaler=config.f1_default_upscaler,
                 resized_width=config.f1_default_hires_resized_width,
                 resized_height=config.f1_default_hires_resized_height
             )
-        defaults['hi_res_fix_info'] = hi_res_fix_info
         
-        # 用传入的kwargs覆盖默认值
+        # 用kwargs覆盖默认值
         defaults.update(kwargs)
+        
         return cls(prompt=prompt, **defaults)
     
     def to_dict(self) -> Dict[str, Any]:
-        """转换为API请求参数字典 - F.1版本完整参数"""
-        # F.1文生图完整参数结构
-        params = {
-            "prompt": self.prompt,
-            "steps": self.steps,
-            "width": self.width,
-            "height": self.height,
-            "imgCount": self.img_count,
-            "seed": self.seed,
-            "restoreFaces": self.restore_faces,  # F.1支持面部修复参数
-            "cfgScale": self.cfg_scale,  # CFG引导强度
-            "randnSource": self.randn_source,  # 随机数源
-            "clipSkip": self.clip_skip,  # CLIP跳过层数
-            "sampler": self.sampler  # 采样器类型
+        """转换为API请求格式"""
+        result = {
+            'prompt': self.prompt,
+            'steps': self.steps,
+            'width': self.width,
+            'height': self.height,
+            'imgCount': self.img_count,  # 使用驼峰命名
+            'seed': self.seed,
+            'restoreFaces': self.restore_faces,  # 使用驼峰命名
+            'negativePrompt': self.negative_prompt,  # 使用驼峰命名
+            'cfgScale': self.cfg_scale,  # 使用驼峰命名
+            'randnSource': self.randn_source,  # 使用驼峰命名
+            'clipSkip': self.clip_skip,  # 使用驼峰命名
+            'sampler': self.sampler
         }
         
-        # 添加负向提示词（如果有的话）
-        if self.negative_prompt:
-            params["negativePrompt"] = self.negative_prompt
-        
-        # F.1支持LoRA网络
+        # 添加LoRA网络
         if self.additional_network:
-            params["additionalNetwork"] = [
-                {"modelId": net.model_id, "weight": net.weight}
-                for net in self.additional_network
+            result['additionalNetwork'] = [  # 使用驼峰命名
+                {
+                    'modelId': network.model_id,  # 使用驼峰命名
+                    'weight': network.weight
+                }
+                for network in self.additional_network
             ]
         
-        # 添加高分辨率修复信息（如果有的话）
+        # 添加高分辨率修复
         if self.hi_res_fix_info:
-            params["hiResFixInfo"] = {
-                "hiresSteps": self.hi_res_fix_info.hires_steps,
-                "hiresDenoisingStrength": self.hi_res_fix_info.hires_denoising_strength,
-                "upscaler": self.hi_res_fix_info.upscaler,
-                "resizedWidth": self.hi_res_fix_info.resized_width,
-                "resizedHeight": self.hi_res_fix_info.resized_height
+            result['hiResFixInfo'] = {  # 使用驼峰命名
+                'hiresSteps': self.hi_res_fix_info.hires_steps,  # 使用驼峰命名
+                'hiresDenoisingStrength': self.hi_res_fix_info.hires_denoising_strength,  # 使用驼峰命名
+                'upscaler': self.hi_res_fix_info.upscaler,
+                'resizedWidth': self.hi_res_fix_info.resized_width,  # 使用驼峰命名
+                'resizedHeight': self.hi_res_fix_info.resized_height  # 使用驼峰命名
             }
         
-        return params
-
-
-
+        return result
 
 
 @dataclass
@@ -196,14 +187,17 @@ class GenerateResult:
     images: List[Dict[str, Any]]
 
 
-class LiblibService:
-    """LiblibAI API服务类"""
+class LiblibService(ImageServiceBase):
+    """LiblibAI图像生成服务"""
     
     def __init__(self, liblib_config: LiblibConfig, app_config: Config):
+        super().__init__(ImageServiceType.LIBLIB_AI)
         self.config = liblib_config
         self.app_config = app_config
         self.session = requests.Session()
         self.session.timeout = liblib_config.timeout
+    
+
     
     def _generate_signature(self, uri: str) -> Dict[str, str]:
         """生成API签名"""
@@ -279,41 +273,74 @@ class LiblibService:
             print(f"\n❌ 响应解析失败: {str(e)}")
             raise Exception(f"响应解析失败: {str(e)}")
     
-
+    async def generate_image(self, request: ImageGenerationRequest) -> ImageGenerationResponse:
+        """生成图像 - 统一接口实现"""
+        try:
+            # 使用F.1模型生成
+            params = F1GenerationParams(
+                prompt=request.prompt,
+                width=request.width,
+                height=request.height,
+                steps=request.steps or 20,
+                img_count=request.num_images,
+                negative_prompt=request.negative_prompt or "",
+                cfg_scale=request.guidance_scale or 3.5,
+                seed=request.seed or -1
+            )
+            
+            # 生成图片
+            result = self.f1_text_to_image(params)
+            
+            # 等待完成
+            result = self.wait_for_completion(result.generate_uuid)
+            
+            if result.status == GenerateStatus.SUCCESS:
+                image_urls = [img.get('url', img.get('imageUrl', '')) for img in result.images]
+                return ImageGenerationResponse(
+                    success=True,
+                    images=image_urls,
+                    message=result.message,
+                    metadata={
+                        'generate_uuid': result.generate_uuid,
+                        'points_cost': result.points_cost,
+                        'account_balance': result.account_balance
+                    }
+                )
+            else:
+                return ImageGenerationResponse(
+                    success=False,
+                    images=[],
+                    message=f"生成失败: {result.message}",
+                    error=result.message
+                )
+                
+        except Exception as e:
+            return self._create_error_response(f"LiblibAI生成失败: {str(e)}")
+    
+    async def is_available(self) -> bool:
+        """检查服务是否可用"""
+        try:
+            # 简单的API调用测试服务可用性
+            uri = "/api/generate/webui/status"
+            data = {'generateUuid': 'test'}
+            response = self._make_request('POST', uri, data)
+            # 即使返回错误，只要能连接到API就认为服务可用
+            return True
+        except Exception:
+            return False
+    
+    async def get_supported_models(self) -> List[str]:
+        """获取支持的模型列表"""
+        # LiblibAI主要支持F.1模型和传统模型
+        return [
+            "F.1",  # F.1模型
+            "SD1.5",  # Stable Diffusion 1.5
+            "SDXL",  # Stable Diffusion XL
+            "其他自定义模型"  # 其他支持的模型
+        ]
     
     def f1_text_to_image(self, params: F1GenerationParams) -> GenerateResult:
-        """F.1文生图（完整参数版本）
-        
-        Args:
-            params: F.1文生图参数配置对象
-            
-        Returns:
-            GenerateResult: 生图结果
-            
-        Example:
-            >>> from liblib_service import F1GenerationParams, AdditionalNetwork
-            >>> 
-            >>> # 基础文生图
-            >>> params = F1GenerationParams(
-            ...     prompt="a beautiful landscape, masterpiece, best quality",
-            ...     width=768,
-            ...     height=1024,
-            ...     steps=30
-            ... )
-            >>> result = service.f1_text_to_image(params)
-            >>> 
-            >>> # 使用LoRA网络
-            >>> params = F1GenerationParams(
-            ...     prompt="anime girl, detailed face",
-            ...     width=512,
-            ...     height=768,
-            ...     additional_network=[
-            ...         AdditionalNetwork(model_id="lora-uuid-1", weight=0.8),
-            ...         AdditionalNetwork(model_id="lora-uuid-2", weight=0.6)
-            ...     ]
-            ... )
-            >>> result = service.f1_text_to_image(params)
-        """
+        """F.1文生图（完整参数版本）"""
         uri = "/api/generate/webui/text2img"
         
         data = {
@@ -336,29 +363,12 @@ class LiblibService:
             images=[]
         )
     
-
-    
     def create_f1_text_params(self, prompt: str, **kwargs) -> F1GenerationParams:
-        """创建F.1文生图参数对象（使用配置默认值）
-        
-        Args:
-            prompt: 正向提示词
-            **kwargs: 其他参数，会覆盖配置中的默认值
-            
-        Returns:
-            F1GenerationParams: 配置化的参数对象
-        """
+        """创建F.1文生图参数对象（使用配置默认值）"""
         return F1GenerationParams.from_config(prompt, self.app_config, **kwargs)
     
     def get_generate_status(self, generate_uuid: str) -> GenerateResult:
-        """查询生图结果
-        
-        Args:
-            generate_uuid: 生图任务UUID
-        
-        Returns:
-            生图结果
-        """
+        """查询生图结果"""
         uri = "/api/generate/webui/status"
         data = {'generateUuid': generate_uuid}
         
@@ -381,16 +391,7 @@ class LiblibService:
     
     def wait_for_completion(self, generate_uuid: str, max_wait_time: int = 300, 
                           check_interval: int = 5) -> GenerateResult:
-        """等待生图完成
-        
-        Args:
-            generate_uuid: 生图任务UUID
-            max_wait_time: 最大等待时间(秒)
-            check_interval: 检查间隔(秒)
-        
-        Returns:
-            生图结果
-        """
+        """等待生图完成"""
         start_time = time.time()
         
         while time.time() - start_time < max_wait_time:
@@ -405,20 +406,22 @@ class LiblibService:
     
     def batch_generate_from_json(self, json_file_path: str, output_dir: str, 
                                 use_f1: bool = True, **kwargs) -> List[str]:
-        """从JSON文件批量生成图片
-        
-        Args:
-            json_file_path: txt.json文件路径
-            output_dir: 输出目录
-            use_f1: 是否使用F.1模型，默认True
-            **kwargs: 其他生成参数
-            
-        Returns:
-            生成的图片文件路径列表
-        """
+        """从JSON文件批量生成图片"""
         # 读取JSON文件
         with open(json_file_path, 'r', encoding='utf-8') as f:
-            prompts_data = json.load(f)
+            data = json.load(f)
+        
+        # 处理不同的JSON格式
+        if isinstance(data, dict) and 'storyboards' in data:
+            # 新的标准化格式
+            prompts_data = data['storyboards']
+            print(f"检测到标准化格式，包含 {len(prompts_data)} 个故事板")
+        elif isinstance(data, list):
+            # 旧格式兼容
+            prompts_data = data
+            print(f"检测到旧格式，包含 {len(prompts_data)} 个条目")
+        else:
+            raise ValueError("不支持的JSON格式")
         
         # 确保输出目录存在
         output_path = Path(output_dir)
@@ -429,10 +432,21 @@ class LiblibService:
         # 批量生成图片
         for i, item in enumerate(tqdm(prompts_data, desc="生成图片")):
             try:
-                prompt = item.get('prompt', item.get('text', ''))
+                # 支持多种字段名
+                prompt = (
+                    item.get('english_prompt') or  # 新格式
+                    item.get('故事板提示词') or      # 旧格式
+                    item.get('prompt') or          # 通用格式
+                    item.get('text', '')           # 备用格式
+                )
+                
                 if not prompt:
                     print(f"跳过第{i+1}项：没有找到提示词")
                     continue
+                
+                # 获取LoRA ID
+                lora_id = item.get('lora_id') or item.get('LoRA编号', '')
+                scene_id = item.get('scene_id', str(i+1))
                 
                 # 准备生成参数
                 if use_f1:
@@ -465,8 +479,8 @@ class LiblibService:
                             # 下载图片
                             response = requests.get(image_url)
                             if response.status_code == 200:
-                                # 生成文件名
-                                filename = f"image_{i+1:04d}_{j+1}.png"
+                                # 生成文件名，使用scene_id
+                                filename = f"scene_{scene_id}_{j+1}.png"
                                 file_path = output_path / filename
                                 
                                 # 保存图片

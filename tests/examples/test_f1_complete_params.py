@@ -16,10 +16,10 @@ sys.path.insert(0, str(project_root))
 # 添加src目录到路径
 sys.path.insert(0, str(project_root / 'src'))
 
-from pipeline.liblib_service import (
-    LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork
+from src.services.image.liblib_service import (
+    LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork, HiResFixInfo
 )
-from config import Config
+from src.config import Config
 
 # 创建配置实例
 config = Config()

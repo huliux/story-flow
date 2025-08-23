@@ -9,43 +9,63 @@ import sys
 import time
 from pathlib import Path
 
-# 添加src目录到Python路径
-sys.path.insert(0, str(Path(__file__).parent / 'src'))
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
-from config import config
-from pipeline.liblib_service import LiblibService, LiblibConfig
-from liblib_standalone import batch_generate_from_json
+from src.config import config
+from src.services.image.liblib_service import LiblibService, LiblibConfig
+from src.liblib_standalone import batch_generate_from_json
 
 
 def create_test_json():
-    """创建测试用的JSON文件，模拟txt.json格式"""
-    test_data = [
-        {
-            "故事板提示词": "一只可爱的小猫在花园里玩耍，阳光明媚，卡通风格",
-            "场景描述": "花园场景",
-            "其他字段": "测试数据1"
+    """创建测试用的JSON文件，模拟sd_prompt.json格式"""
+    from datetime import datetime
+    
+    test_data = {
+        "metadata": {
+            "created_at": datetime.now().isoformat(),
+            "video_theme": "测试场景集合",
+            "file_type": "sd_prompts"
         },
-        {
-            "故事板提示词": "一个现代化的城市夜景，霓虹灯闪烁，科幻风格",
-            "场景描述": "城市夜景",
-            "其他字段": "测试数据2"
-        },
-        {
-            "故事板提示词": "一片宁静的湖泊，山峦倒影，水彩画风格",
-            "场景描述": "湖泊风景",
-            "其他字段": "测试数据3"
-        },
-        {
-            "故事板提示词": "一个温馨的咖啡厅内部，暖色调灯光，写实风格",
-            "场景描述": "咖啡厅内景",
-            "其他字段": "测试数据4"
-        },
-        {
-            "故事板提示词": "一朵盛开的樱花树，粉色花瓣飘落，日式风格",
-            "场景描述": "樱花树",
-            "其他字段": "测试数据5"
-        }
-    ]
+        "storyboards": [
+            {
+                "scene_id": "1",
+                "original_chinese": "一只可爱的小猫在花园里玩耍",
+                "english_prompt": "一只可爱的小猫在花园里玩耍，阳光明媚，卡通风格",
+                "processed_chinese": "一只可爱的小猫在花园里玩耍",
+                "lora_id": "001"
+            },
+            {
+                "scene_id": "2",
+                "original_chinese": "一个现代化的城市夜景",
+                "english_prompt": "一个现代化的城市夜景，霓虹灯闪烁，科幻风格",
+                "processed_chinese": "一个现代化的城市夜景",
+                "lora_id": "002"
+            },
+            {
+                "scene_id": "3",
+                "original_chinese": "一片宁静的湖泊",
+                "english_prompt": "一片宁静的湖泊，山峦倒影，水彩画风格",
+                "processed_chinese": "一片宁静的湖泊",
+                "lora_id": "003"
+            },
+            {
+                "scene_id": "4",
+                "original_chinese": "一个温馨的咖啡厅内部",
+                "english_prompt": "一个温馨的咖啡厅内部，暖色调灯光，写实风格",
+                "processed_chinese": "一个温馨的咖啡厅内部",
+                "lora_id": "004"
+            },
+            {
+                "scene_id": "5",
+                "original_chinese": "一朵盛开的樱花树",
+                "english_prompt": "一朵盛开的樱花树，粉色花瓣飘落，日式风格",
+                "processed_chinese": "一朵盛开的樱花树",
+                "lora_id": "005"
+            }
+        ]
+    }
     
     test_file = Path('test_prompts.json')
     with open(test_file, 'w', encoding='utf-8') as f:
@@ -69,7 +89,7 @@ def test_batch_generation():
             access_key=config.liblib_access_key,
             secret_key=config.liblib_secret_key
         )
-        service = LiblibService(liblib_config)
+        service = LiblibService(liblib_config, config)
         
         # 创建输出目录
         output_dir = Path('./test_batch_output')

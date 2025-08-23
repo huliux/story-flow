@@ -118,10 +118,21 @@ async def process_text_files(input_file, output_dir, language):
     
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
-            data_list = json.load(f)
+            data = json.load(f)
+        
+        # 处理新的标准化格式和旧格式的兼容性
+        if isinstance(data, dict) and 'storyboards' in data:
+            # 新的标准化格式
+            data_list = data['storyboards']
+        elif isinstance(data, list):
+            # 旧的列表格式
+            data_list = data
+        else:
+            print("错误: 无法识别的JSON格式")
+            return []
         
         # 获取原始中文文本内容
-        column_data = [item.get("原始中文", "") for item in data_list]
+        column_data = [item.get("original_chinese", item.get("原始中文", "")) for item in data_list]
         
         # 过滤掉空的文本
         texts = [(i, text) for i, text in enumerate(column_data, 1) if text and str(text).strip()]
@@ -173,10 +184,13 @@ async def process_text_files(input_file, output_dir, language):
         print(f"处理过程中发生错误: {e}")
         return []
 
-def main():
+def main(json_file_path=None):
     """主函数"""
-    # 使用配置文件中的路径
-    input_file = config.output_json_file
+    # 使用配置文件中的路径或命令行参数
+    if json_file_path:
+        input_file = Path(json_file_path)
+    else:
+        input_file = config.output_json_file
     output_dir = config.output_dir_voice
     language = "zh-CN"
     
@@ -207,6 +221,10 @@ def main():
         return False
 
 if __name__ == "__main__":
-    success = main()
+    parser = argparse.ArgumentParser(description='语音合成工具')
+    parser.add_argument('--json-file', type=str, help='指定JSON文件路径')
+    args = parser.parse_args()
+    
+    success = main(args.json_file)
     if not success:
         sys.exit(1)

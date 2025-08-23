@@ -14,7 +14,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.pipeline.liblib_service import (
+from src.services.image.liblib_service import (
     LiblibService, LiblibConfig,
     F1GenerationParams,
     AdditionalNetwork

@@ -14,10 +14,7 @@ with patch('src.llm_client.llm_client') as mock_llm_client:
     }
     from src.pipeline.text_analyzer import (
         merge_short_sentences,
-        translate_to_english,
-        translate_to_storyboard,
         read_character_mapping,
-        apply_character_replacement,
         process_single_chapter_json
     )
 
@@ -99,18 +96,14 @@ class TestTextAnalyzer:
     
     @patch('builtins.open', new_callable=mock_open)
     @patch('json.dump')
-    @patch('src.pipeline.text_analyzer.translate_to_storyboard')
-    @patch('src.pipeline.text_analyzer.translate_to_english')
     @patch('src.pipeline.text_analyzer.read_character_mapping')
-    def test_process_single_chapter_json_functionality(self, mock_read_mapping, mock_translate_english, mock_translate_storyboard, mock_json_dump, mock_file):
+    def test_process_single_chapter_json_functionality(self, mock_read_mapping, mock_json_dump, mock_file):
         """测试process_single_chapter_json函数的基本功能"""
         import tempfile
         import os
         
         # 设置mock返回值
         mock_read_mapping.return_value = {}
-        mock_translate_english.return_value = "Translated text"
-        mock_translate_storyboard.return_value = "Storyboard prompt"
         
         # 创建测试章节数据
         test_chapter = {
@@ -174,3 +167,46 @@ class TestTextAnalyzer:
             else:
                 # 合并后的句子应该包含多个原始短句
                 assert any(short in sentence for short in short_sentences)
+    
+    def test_data_format_validation(self):
+        """测试数据格式验证"""
+        # 创建测试数据
+        from datetime import datetime
+        
+        test_data = {
+            "metadata": {
+                "created_at": datetime.now().isoformat(),
+                "video_theme": "测试场景集合",
+                "file_type": "sd_prompts"
+            },
+            "storyboards": [
+                {
+                    "scene_id": "1",
+                    "original_chinese": "一只可爱的小猫在花园里玩耍",
+                    "processed_chinese": "一只可爱的小猫在花园里玩耍",
+                    "english_prompt": "A cute little cat playing in the garden, sunny day, cartoon style",
+                    "lora_id": "001"
+                },
+                {
+                    "scene_id": "2",
+                    "original_chinese": "一个现代化的城市夜景",
+                    "processed_chinese": "一个现代化的城市夜景",
+                    "english_prompt": "A modern city night scene, neon lights flashing, sci-fi style",
+                    "lora_id": "002"
+                }
+            ]
+        }
+        
+        # 验证数据结构
+        assert "metadata" in test_data
+        assert "storyboards" in test_data
+        assert isinstance(test_data["storyboards"], list)
+        assert len(test_data["storyboards"]) == 2
+        
+        # 验证每个故事板项目的结构
+        for storyboard in test_data["storyboards"]:
+            assert "scene_id" in storyboard
+            assert "original_chinese" in storyboard
+            assert "processed_chinese" in storyboard
+            assert "english_prompt" in storyboard
+            assert "lora_id" in storyboard

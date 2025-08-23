@@ -84,25 +84,25 @@ def process_batch_with_model(data_batch, character_mappings, story_content):
 
 角色识别与替换：
 
-输入： 读取输入数据中每一个对象的 "原始中文" 字段。
+输入： 读取输入数据中每一个对象的 "original_chinese" 字段。
 
 映射依据： 使用提供的角色映射配置（如下所示）作为唯一标准。
 
-操作： 扫描 "原始中文" 文本，识别并定位所有出现的角色称谓。将识别到的所有角色称谓（如“你”、“小猪”、“皮皮”、“大灰狼”、“兄弟们”、“生物们”等），严格按照映射关系替换为对应的 "new_name" 值。
+操作： 扫描 "original_chinese" 文本，识别并定位所有出现的角色称谓。将识别到的所有角色称谓（如"你"、"小猪"、"皮皮"、"大灰狼"、"兄弟们"、"生物们"等），严格按照映射关系替换为对应的 "new_name" 值。
 
-输出： 将完成替换后的完整文本更新到该对象的 "替换后中文" 字段。
+输出： 将完成替换后的完整文本更新到该对象的 "processed_chinese" 字段。
 
 场景识别与添加：
 
-输入： 在完成角色替换的 "替换后中文" 文本基础上进行分析。
+输入： 在完成角色替换的 "processed_chinese" 文本基础上进行分析。
 
-操作： 判断该句文本所描述的核心事件或环境（例如：“建房子”、“发现诅咒”、“被围攻”、“完成仪式”）。用一个简洁的名词性短语（如：“森林建设场景”、“诅咒揭示场景”、“村庄围攻场景”、“月光仪式场景”）总结该场景。
+操作： 判断该句文本所描述的核心事件或环境（例如："建房子"、"发现诅咒"、"被围攻"、"完成仪式"）。用一个简洁的名词性短语（如："森林建设场景"、"诅咒揭示场景"、"村庄围攻场景"、"月光仪式场景"）总结该场景。
 
-输出： 将此场景短语添加为 "替换后中文" 文本的后缀，与前文用句号分隔。格式为：[完成角色替换的原文]。[场景短语]。
+输出： 将此场景短语添加为 "processed_chinese" 文本的后缀，与前文用句号分隔。格式为：[完成角色替换的原文]。[场景短语]。
 
 提示词生成：
 
-输入： 以上一步得到的、包含场景的最终版 "替换后中文" 文本为依据。
+输入： 以上一步得到的、包含场景的最终版 "processed_chinese" 文本为依据。
 
 操作： 将其翻译并提炼成高质量的 Stable Diffusion 英文提示词。提示词须包含：
 
@@ -116,21 +116,21 @@ def process_batch_with_model(data_batch, character_mappings, story_content):
 
 风格与质量 (Style/Quality): 指定艺术风格和画质（如：fantasy art style, digital painting, cinematic lighting, highly detailed, masterpiece）。
 
-输出： 将生成的英文提示词更新到该对象的 "故事板提示词" 字段。
+输出： 将生成的英文提示词更新到该对象的 "english_prompt" 字段。
 
 LoRA 编号映射：
 
-输入： 检查每个对象 "替换后中文" 字段中出现的 "new_name" 内容。
+输入： 检查每个对象 "processed_chinese" 字段中出现的 "new_name" 内容。
 
 映射规则：
 
-如果文本中包含 "1只穿着简朴勇敢的年轻小猪"（即主角），则 "LoRA编号" 设为 "0"。
+如果文本中包含 "1只穿着简朴勇敢的年轻小猪"（即主角），则 "lora_id" 设为 "0"。
 
-如果文本中仅包含 "多只形态各异被诅咒的森林生物" 或 "1只穿着皮毛凶猛的中成年狼"，或场景描述与主角无关，则 "LoRA编号" 设为空字符串 ""。
+如果文本中仅包含 "多只形态各异被诅咒的森林生物" 或 "1只穿着皮毛凶猛的中成年狼"，或场景描述与主角无关，则 "lora_id" 设为空字符串 ""。
 
 注意： 此规则需根据您的具体映射配置调整。当前规则基于您上次提供的配置假设。
 
-输出： 将确定的编号更新到该对象的 "LoRA编号" 字段。
+输出： 将确定的编号更新到该对象的 "lora_id" 字段。
 
 请直接返回处理后的完整JSON数组，不要添加任何其他说明文字。
     """
@@ -199,21 +199,24 @@ def read_character_mapping():
 # 定义一个函数，创建初始数据列表（只包含原始中文字段）
 def create_initial_data_list(sentences):
     """创建只包含原始中文字段的初始数据列表"""
-    data = []
+    storyboards = []
+    scene_id = 1
     for sentence in sentences:
         # 更严格的过滤条件：忽略空行、纯英文内容、和明显的提示词模板
         sentence_clean = sentence.strip()
         if (sentence_clean and 
             not is_english_template(sentence_clean) and 
             len(sentence_clean) > 3):  # 至少3个字符
-            data.append({
-                "原始中文": sentence_clean,
-                "故事板提示词": "",
-                "替换后中文": "",
-                "LoRA编号": ""
+            storyboards.append({
+                "scene_id": str(scene_id),
+                "original_chinese": sentence_clean,
+                "english_prompt": "",
+                "processed_chinese": "",
+                "lora_id": ""
             })
+            scene_id += 1
     
-    return data
+    return storyboards
 
 def clean_content(content):
     """清理章节内容，移除不相关的模板文本"""
@@ -298,13 +301,24 @@ def process_single_chapter_json(chapter, output_file_path):
         sentences.extend(chapter_sentences)
         sentences = merge_short_sentences(sentences)  
 
-        # 第一阶段：创建只包含"原始中文"字段的初始数据列表
+        # 第一阶段：创建只包含"original_chinese"字段的初始数据列表
         print("第一阶段：生成初始JSON文件（只包含原始中文字段）")
-        initial_data_list = create_initial_data_list(sentences)
+        initial_storyboards = create_initial_data_list(sentences)
+        
+        # 创建标准化的JSON结构
+        from datetime import datetime
+        initial_json_data = {
+            "metadata": {
+                "created_at": datetime.now().isoformat(),
+                "video_theme": "设计男女从相爱到结婚相伴时间流逝的伤感场景。",
+                "file_type": "sd_prompts"
+            },
+            "storyboards": initial_storyboards
+        }
         
         # 保存初始JSON文件
         with open(output_file_path, 'w', encoding='utf-8') as f:
-            json.dump(initial_data_list, f, ensure_ascii=False, indent=2)
+            json.dump(initial_json_data, f, ensure_ascii=False, indent=2)
         print(f"初始JSON文件已保存: {output_file_path}")
         
         # 第二阶段：通过模型一次性处理其他字段
@@ -314,8 +328,8 @@ def process_single_chapter_json(chapter, output_file_path):
         character_mappings = read_character_mapping()
         
         # 通过模型一次性处理所有字段
-        processed_data_list = process_all_fields_with_model(
-            initial_data_list, 
+        processed_storyboards = process_all_fields_with_model(
+            initial_storyboards, 
             character_mappings, 
             content
         )
@@ -338,13 +352,23 @@ def process_single_chapter_json(chapter, output_file_path):
             translated_bg = llm_client.chat_completion(messages).strip()
             
             # 将翻译后的story_bg添加到每个条目的故事板提示词末尾
-            for item in processed_data_list:
-                if item.get('故事板提示词'):
-                    item['故事板提示词'] = f"{item['故事板提示词']}, {translated_bg}"
+            for item in processed_storyboards:
+                if item.get('english_prompt'):
+                    item['english_prompt'] = f"{item['english_prompt']}, {translated_bg}"
+        
+        # 创建最终的标准化JSON结构
+        final_json_data = {
+            "metadata": {
+                "created_at": datetime.now().isoformat(),
+                "video_theme": "设计男女从相爱到结婚相伴时间流逝的伤感场景。",
+                "file_type": "sd_prompts"
+            },
+            "storyboards": processed_storyboards
+        }
         
         # 保存最终的JSON文件
         with open(output_file_path, 'w', encoding='utf-8') as f:
-            json.dump(processed_data_list, f, ensure_ascii=False, indent=2)
+            json.dump(final_json_data, f, ensure_ascii=False, indent=2)
         print(f"最终JSON文件已保存: {output_file_path}")
         
         return True
@@ -376,7 +400,7 @@ def process_input_file_directly():
         }
         
         # 处理文件生成JSON
-        output_file = config.output_dir_txt / "txt.json"
+        output_file = config.output_dir_txt / "sd_prompt.json"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
         print(f"正在处理输入文件: {input_file}")

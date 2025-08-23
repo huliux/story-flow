@@ -620,9 +620,76 @@ class Config:
     def output_csv_file(self) -> Path:
         return self.project_root / os.getenv('OUTPUT_CSV_FILE', 'data/output/processed/txt.csv')
     
+    def get_available_json_file(self) -> Path:
+        """
+        检测processed文件夹中的JSON文件并自动选择或提示用户选择
+        
+        Returns:
+            Path: 选择的JSON文件路径
+            
+        Raises:
+            FileNotFoundError: 当没有找到任何JSON文件时
+        """
+        processed_dir = self.project_root / 'data/output/processed'
+        sd_prompt_file = processed_dir / 'sd_prompt.json'
+        flux1_prompt_file = processed_dir / 'Flux1_prompt.json'
+        
+        # 检查文件是否存在
+        sd_exists = sd_prompt_file.exists()
+        flux1_exists = flux1_prompt_file.exists()
+        
+        if sd_exists and flux1_exists:
+            # 两个文件都存在，提示用户选择
+            print("\n检测到两个prompt文件:")
+            print("1. sd_prompt.json")
+            print("2. Flux1_prompt.json")
+            
+            while True:
+                try:
+                    choice = input("请选择要使用的文件 (1 或 2): ").strip()
+                    if choice == '1':
+                        print(f"已选择: {sd_prompt_file}")
+                        return sd_prompt_file
+                    elif choice == '2':
+                        print(f"已选择: {flux1_prompt_file}")
+                        return flux1_prompt_file
+                    else:
+                        print("无效选择，请输入 1 或 2")
+                except KeyboardInterrupt:
+                    print("\n操作已取消")
+                    raise
+        elif sd_exists:
+            # 只有sd_prompt.json存在
+            print(f"自动选择: {sd_prompt_file}")
+            return sd_prompt_file
+        elif flux1_exists:
+            # 只有Flux1_prompt.json存在
+            print(f"自动选择: {flux1_prompt_file}")
+            return flux1_prompt_file
+        else:
+            # 没有找到任何文件
+            raise FileNotFoundError(
+                f"在 {processed_dir} 中未找到 sd_prompt.json 或 Flux1_prompt.json 文件"
+            )
+    
     @property
     def output_json_file(self) -> Path:
-        return self.project_root / os.getenv('OUTPUT_JSON_FILE', 'data/output/processed/txt.json')
+        """
+        获取输出JSON文件路径，支持自动选择
+        
+        如果设置了环境变量OUTPUT_JSON_FILE，则使用该值
+        否则使用自动选择逻辑
+        """
+        env_file = os.getenv('OUTPUT_JSON_FILE')
+        if env_file:
+            return self.project_root / env_file
+        
+        # 使用自动选择逻辑
+        try:
+            return self.get_available_json_file()
+        except FileNotFoundError:
+            # 如果没有找到文件，返回默认的sd_prompt.json路径
+            return self.project_root / 'data/output/processed/sd_prompt.json'
     
     @property
     def params_json_file(self) -> Path:

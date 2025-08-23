@@ -15,9 +15,8 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from src.config import Config
-from src.pipeline.liblib_service import (
-    LiblibService, LiblibConfig, F1GenerationParams,
-    AdditionalNetwork
+from src.services.image.liblib_service import (
+    LiblibService, LiblibConfig, F1GenerationParams, AdditionalNetwork
 )
 
 def test_config_loading():

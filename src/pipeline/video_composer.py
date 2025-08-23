@@ -26,6 +26,7 @@ from moviepy.video.compositing.CompositeVideoClip import concatenate_videoclips
 from moviepy.video.VideoClip import TextClip
 import numpy as np
 import json
+import argparse
 from tqdm import tqdm
 from src.config import config
 
@@ -74,7 +75,7 @@ def get_total_files():
 #     sys.exit(1)
 
 # 读取字幕
-def load_subtitle_data(total_files):
+def load_subtitle_data(total_files, json_file_path=None):
     """加载字幕数据"""
     # 检查字幕功能是否启用
     if not load_subtitles:
@@ -84,7 +85,10 @@ def load_subtitle_data(total_files):
     print(f"字幕功能已启用 (VIDEO_SUBTITLE={load_subtitles})")
     
     try:
-        subtitle_file = config.output_json_file
+        if json_file_path:
+            subtitle_file = Path(json_file_path)
+        else:
+            subtitle_file = config.output_json_file
         if not subtitle_file.exists():
             print(f"警告: 字幕文件不存在 - {subtitle_file}")
             print("提示: 请确保文本分析步骤已完成并生成了字幕文件")
@@ -93,8 +97,19 @@ def load_subtitle_data(total_files):
         with open(subtitle_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
+        # 处理新的标准化格式和旧格式的兼容性
+        if isinstance(data, dict) and 'storyboards' in data:
+            # 新的标准化格式
+            data_list = data['storyboards']
+        elif isinstance(data, list):
+            # 旧的列表格式
+            data_list = data
+        else:
+            print("错误: 无法识别的JSON格式")
+            return [""]*total_files
+        
         # 从JSON数据中提取原始中文字幕
-        subtitles = [item.get('原始中文', '').replace('\n', ' ') for item in data]
+        subtitles = [item.get('original_chinese', item.get('原始中文', '')).replace('\n', ' ') for item in data_list]
         
         # 确保字幕数量与图片数量匹配
         if len(subtitles) < total_files:
@@ -373,7 +388,7 @@ def create_clip(i, subtitles, retry_count=0):
 
     return str(temp_filename)
 
-def main():
+def main(json_file_path=None):
     """主函数：执行视频合成"""
     # 打印配置信息
     print(f"Step 4: 视频合成")
@@ -397,7 +412,7 @@ def main():
         print("错误: 未找到任何图片文件")
         return False
     
-    subtitles = load_subtitle_data(total_files)
+    subtitles = load_subtitle_data(total_files, json_file_path)
     
     # 为了避免文件冲突，适当降低并发数
     original_max_workers = config.max_workers_video
@@ -538,7 +553,11 @@ def cleanup_all_files():
 
 if __name__ == "__main__":
     try:
-        success = main()
+        parser = argparse.ArgumentParser(description='视频合成工具')
+        parser.add_argument('--json-file', type=str, help='指定JSON文件路径')
+        args = parser.parse_args()
+        
+        success = main(args.json_file)
         if not success:
             sys.exit(1)
     except KeyboardInterrupt:
