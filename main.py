@@ -436,6 +436,28 @@ def run_liblib_standalone():
         print(f"\n❌ 运行LiblibAI生图工具时出错: {e}")
         return False
 
+def run_image_to_video():
+    """运行图生视频功能"""
+    try:
+        print("\n📹 开始图生视频...")
+        
+        # 运行图生视频模块
+        result = subprocess.run([
+            sys.executable, 
+            str(project_root / "src" / "pipeline" / "image_to_video.py")
+        ], cwd=project_root, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print("✅ 图生视频完成")
+            return True
+        else:
+            print(f"❌ 图生视频失败: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 图生视频出错: {e}")
+        return False
+
 def run_voice_synthesizer():
     """运行语音合成器"""
     print("\n🎵 开始生成音频...")
@@ -541,9 +563,10 @@ def display_main_menu():
     print("  6. 🎨 F1生图")
     print("  7. 🎵 生成音频")
     print("  8. 🎥 合成视频")
-    print("  9. 🎬 爆款文案")
-    print("  10. 🧹 清理文件")
-    print("  11. ❓ 显示帮助")
+    print("  9. 📹 图生视频")
+    print("  10. 🎬 爆款文案")
+    print("  11. 🧹 清理文件")
+    print("  12. ❓ 显示帮助")
     print("  0. 🚪 退出程序")
     print("")
     print("-"*60)
@@ -568,6 +591,7 @@ def show_help():
     print(f"    - 图像输出: {config.output_dir_image}")
     print(f"    - 音频输出: {config.output_dir_voice}")
     print(f"    - 视频输出: {config.output_dir_video}")
+    print(f"    - 视频片段: {config.output_dir_video_clips}")
     print("")
     print("💡 使用建议:")
     print("  - 首次使用建议选择 '自动执行所有流程'")
@@ -580,11 +604,11 @@ def get_user_choice():
     """获取用户选择"""
     while True:
         try:
-            choice = input("请输入选项编号 (0-11): ").strip()
-            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']:
+            choice = input("请输入选项编号 (0-12): ").strip()
+            if choice in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']:
                 return int(choice)
             else:
-                print("❌ 无效选项，请输入 0-11 之间的数字")
+                print("❌ 无效选项，请输入 0-12 之间的数字")
         except (ValueError, KeyboardInterrupt):
             print("\n❌ 输入无效，请重新输入")
 
@@ -663,21 +687,31 @@ def run_interactive_mode():
                 else:
                     print("\n❌ 视频合成失败")
         elif choice == 9:
+            success = run_image_to_video()
+            if success:
+                print("\n✅ 图生视频完成")
+            else:
+                print("\n❌ 图生视频失败")
+        elif choice == 10:
             success = viral_video_generator.generate_complete_workflow()
             if success:
                 print("\n✅ 爆款视频大纲和提示词生成完成")
             else:
                 print("\n❌ 爆款视频生成失败")
-        elif choice == 10:
+        elif choice == 11:
             clean_output_files()
             print("\n✅ 输出文件清理完成")
-        elif choice == 11:
+        elif choice == 12:
             display_help()
         
         # 如果不是退出，询问是否继续
         if choice != 0:
             print("\n" + "-"*40)
-            continue_choice = input("按回车键返回主菜单，或输入 'q' 退出: ").strip().lower()
+            try:
+                continue_choice = input("按回车键返回主菜单，或输入 'q' 退出: ").strip().lower()
+            except EOFError:
+                # 在非交互环境中，直接退出
+                continue_choice = 'q'
             if continue_choice == 'q':
                 print("\n👋 感谢使用 Story Flow，再见！")
                 break
@@ -701,6 +735,7 @@ def parse_arguments():
   python main.py --liblib     # 使用LiblibAI生成图像
   python main.py --audio      # 仅生成音频
   python main.py --video      # 仅合成视频
+  python main.py --image-to-video # 图生视频
   python main.py --viral      # 生成爆款视频大纲和提示词
         """
     )
@@ -725,6 +760,8 @@ def parse_arguments():
                        help='仅合成视频')
     parser.add_argument('--viral', action='store_true', 
                        help='生成爆款视频大纲和提示词')
+    parser.add_argument('--image-to-video', action='store_true', 
+                       help='图生视频')
     parser.add_argument('--help-detailed', action='store_true', 
                        help='显示详细帮助信息')
     
@@ -751,7 +788,7 @@ def main():
     args = parse_arguments()
     
     # 如果没有命令行参数，检查input.md文件是否存在且有效
-    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.viral, args.help_detailed]):
+    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.viral, args.image_to_video, args.help_detailed]):
         if not story_generator.check_input_file_exists():
             print("\n📝 检测到没有有效的input.md文件")
             success = story_generator.generate_and_save_story()
@@ -803,6 +840,10 @@ def main():
     elif args.viral:
         success = viral_video_generator.generate_complete_workflow()
         print("\n✅ 爆款视频大纲和提示词生成完成" if success else "\n❌ 爆款视频生成失败")
+        return success
+    elif args.image_to_video:
+        success = run_image_to_video()
+        print("\n✅ 图生视频完成" if success else "\n❌ 图生视频失败")
         return success
     else:
         # 默认启动交互式模式

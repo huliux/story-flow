@@ -51,6 +51,7 @@ class Config:
             self.output_dir_image,
             self.output_dir_voice,
             self.output_dir_video,
+            self.output_dir_video_clips,
             self.output_dir_temp,
         ]
         
@@ -606,6 +607,11 @@ class Config:
         return self.project_root / os.getenv('OUTPUT_DIR_VIDEO', 'data/output/videos')
     
     @property
+    def output_dir_video_clips(self) -> Path:
+        """视频片段输出目录"""
+        return self.project_root / "data" / "output" / "video_clips"
+    
+    @property
     def output_dir_temp(self) -> Path:
         return self.project_root / os.getenv('OUTPUT_DIR_TEMP', 'data/temp')
     
@@ -755,6 +761,40 @@ class Config:
         """文本分割器章节识别模式"""
         default_patterns = ['# ', '## ', '### ', '第.*章', 'Chapter']
         return self._get_list('TEXT_SPLITTER_CHAPTER_PATTERNS', default_patterns)
+
+    # ================================
+    # ComfyUI配置
+    # ================================
+    
+    @property
+    def comfyui_api_key(self) -> str:
+        """ComfyUI API密钥"""
+        return os.getenv('COMFYUI_API_KEY', 'comfyui-59812650bdf5c40d3f25c39d255235d9feb41933082ac8951576993120e37cb5')
+    
+    @property
+    def comfyui_server_url(self) -> str:
+        """ComfyUI服务器地址"""
+        return os.getenv('COMFYUI_SERVER_URL', 'http://192.168.50.80:8188')
+    
+    @property
+    def comfyui_workflow_file(self) -> Path:
+        """ComfyUI工作流文件路径"""
+        return self.input_dir / "api_kling_i2v.json"
+    
+    @property
+    def comfyui_timeout(self) -> int:
+        """ComfyUI API超时时间（秒）"""
+        return self._get_int('COMFYUI_TIMEOUT', 300)
+    
+    @property
+    def comfyui_check_interval(self) -> int:
+        """ComfyUI任务状态检查间隔（秒）"""
+        return self._get_int('COMFYUI_CHECK_INTERVAL', 5)
+    
+    @property
+    def comfyui_max_wait_time(self) -> int:
+        """ComfyUI任务最大等待时间（秒）"""
+        return self._get_int('COMFYUI_MAX_WAIT_TIME', 1800)
 
     # ================================
     # 视频生成配置
