@@ -12,7 +12,7 @@ ImageServiceManager = ImageManager
 ImageServiceSelector = ImageManager
 
 __all__ = [
-    'ImageManager',
-    'ImageServiceManager',  # 向后兼容
-    'ImageServiceSelector'   # 向后兼容
+    "ImageManager",
+    "ImageServiceManager",  # 向后兼容
+    "ImageServiceSelector",  # 向后兼容
 ]

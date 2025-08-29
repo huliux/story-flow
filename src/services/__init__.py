@@ -9,8 +9,4 @@ from .image.base import ImageServiceBase
 from .image.liblib_service import LiblibService
 from .image.stable_diffusion_service import StableDiffusionService
 
-__all__ = [
-    'ImageServiceBase',
-    'LiblibService', 
-    'StableDiffusionService'
-]
+__all__ = ["ImageServiceBase", "LiblibService", "StableDiffusionService"]

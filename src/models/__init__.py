@@ -7,8 +7,4 @@
 
 from .image_models import ImageGenerationRequest, ImageGenerationResponse, ServiceStatus
 
-__all__ = [
-    'ImageGenerationRequest',
-    'ImageGenerationResponse', 
-    'ServiceStatus'
-]
+__all__ = ["ImageGenerationRequest", "ImageGenerationResponse", "ServiceStatus"]

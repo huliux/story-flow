@@ -441,10 +441,33 @@ def run_image_to_video():
     try:
         print("\n📹 开始图生视频...")
         
+        # 让用户选择提示词来源
+        print("\n请选择提示词来源:")
+        print("  1. SD提示词 (Stable Diffusion)")
+        print("  2. Flux提示词")
+        
+        while True:
+            try:
+                prompt_choice = input("\n请输入选择 (1-2): ").strip()
+                if prompt_choice == '1':
+                    prompt_source = 'sd'
+                    print("已选择: SD提示词")
+                    break
+                elif prompt_choice == '2':
+                    prompt_source = 'flux'
+                    print("已选择: Flux提示词")
+                    break
+                else:
+                    print("❌ 无效选择，请输入 1 或 2")
+            except (EOFError, KeyboardInterrupt):
+                print("\n用户取消操作")
+                return False
+        
         # 运行图生视频模块
         result = subprocess.run([
             sys.executable, 
-            str(project_root / "src" / "pipeline" / "image_to_video.py")
+            str(project_root / "src" / "pipeline" / "image_to_video.py"),
+            "--prompt-source", prompt_source
         ], cwd=project_root, capture_output=True, text=True)
         
         if result.returncode == 0:
@@ -565,8 +588,9 @@ def display_main_menu():
     print("  8. 🎥 合成视频")
     print("  9. 📹 图生视频")
     print("  10. 🎬 爆款文案")
-    print("  11. 🧹 清理文件")
-    print("  12. ❓ 显示帮助")
+    print("  11. 🎶 视频配乐")
+    print("  12. 🧹 清理文件")
+    print("  13. ❓ 显示帮助")
     print("  0. 🚪 退出程序")
     print("")
     print("-"*60)
@@ -699,9 +723,13 @@ def run_interactive_mode():
             else:
                 print("\n❌ 爆款视频生成失败")
         elif choice == 11:
+            print("\n🎶 开始视频配乐合成...")
+            from src.pipeline.video_music_composer import main as video_music_main
+            video_music_main()
+        elif choice == 12:
             clean_output_files()
             print("\n✅ 输出文件清理完成")
-        elif choice == 12:
+        elif choice == 13:
             display_help()
         
         # 如果不是退出，询问是否继续
@@ -762,6 +790,8 @@ def parse_arguments():
                        help='生成爆款视频大纲和提示词')
     parser.add_argument('--image-to-video', action='store_true', 
                        help='图生视频')
+    parser.add_argument('--video-music', action='store_true', 
+                       help='视频配乐合成')
     parser.add_argument('--help-detailed', action='store_true', 
                        help='显示详细帮助信息')
     
@@ -788,7 +818,7 @@ def main():
     args = parse_arguments()
     
     # 如果没有命令行参数，检查input.md文件是否存在且有效
-    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.viral, args.image_to_video, args.help_detailed]):
+    if not any([args.auto, args.generate, args.semantic, args.split, args.analyze, args.images, args.liblib, args.audio, args.video, args.viral, args.image_to_video, args.video_music, args.help_detailed]):
         if not story_generator.check_input_file_exists():
             print("\n📝 检测到没有有效的input.md文件")
             success = story_generator.generate_and_save_story()
@@ -844,6 +874,11 @@ def main():
     elif args.image_to_video:
         success = run_image_to_video()
         print("\n✅ 图生视频完成" if success else "\n❌ 图生视频失败")
+        return success
+    elif args.video_music:
+        from src.pipeline.video_music_composer import main as video_music_main
+        success = video_music_main()
+        print("\n✅ 视频配乐合成完成" if success else "\n❌ 视频配乐合成失败")
         return success
     else:
         # 默认启动交互式模式

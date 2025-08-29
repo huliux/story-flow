@@ -1,4 +1,4 @@
-# 📺 Story Flow - 智能文本到视频生成系统
+# 📺 Story Flow - Intelligent Text-to-Video Generation System
 
 <div align="center">
 
@@ -9,255 +9,286 @@
 [![Tests](https://img.shields.io/badge/Tests-Passing-green.svg)](#)
 [![Code Quality](https://img.shields.io/badge/Code%20Quality-A+-brightgreen.svg)](#)
 
-**🚀 将文字变成视频，让故事活起来！**
+**🚀 Transform text into videos, bring stories to life!**
 
-*一键式AI驱动的文本到视频生成系统，专为内容创作者打造*
+*AI-powered automated video generation system designed for content creators*
 
-[🎬 在线演示](#) • [📖 快速开始](#-快速开始) • [📚 完整文档](#-完整文档) • [💬 加入社群](#-联系方式)
+**🌍 Language:** [English](README.md) | [中文](docs/README_CN.md)
+
+
 
 </div>
 
 ---
 
-## 🌟 为什么选择 Story Flow？
+## 🌟 Why Choose Story Flow?
 
-**Story Flow** 是一个革命性的AI文本到视频生成系统，专为解决内容创作者的痛点而生：
+**Story Flow** is a revolutionary AI text-to-video generation system designed to solve content creators' pain points:
 
-- 📝 **告别繁琐制作** - 从文本到视频，一键完成，节省90%制作时间
-- 🎨 **专业级视觉效果** - AI生成高质量图像，媲美专业设计师作品
-- 🎙️ **真人级语音合成** - Azure TTS技术，自然流畅的中文语音
-- 🎬 **电影级视频输出** - 自动字幕、转场特效，专业视频制作水准
-- 🔧 **零技术门槛** - 简单配置，小白也能制作专业视频内容
+- 📝 **Say Goodbye to Tedious Production** - From text to video in one click, save 90% production time
+- 🎨 **Professional Visual Effects** - AI-generated high-quality images comparable to professional designers
+- 🎙️ **Human-like Voice Synthesis** - Azure TTS technology with natural and fluent Chinese speech
+- 🎬 **Cinema-quality Video Output** - Automatic subtitles, transition effects, professional video production standards
+- 🔧 **Zero Technical Barrier** - Simple configuration, even beginners can create professional video content
 
-## 🎯 核心优势
+## 🎯 Core Advantages
 
 <table>
 <tr>
 <td width="50%">
 
-### 🚀 **极速生成**
-- ⚡ **3分钟生成** - 1000字文本3分钟内完成视频
-- 🔄 **批量处理** - 支持多章节并行处理
-- 📊 **实时进度** - 可视化处理进度追踪
+### 🚀 **Ultra-fast Generation**
+- ⚡ **3-minute Generation** - Complete video from 1000 words in 3 minutes
+- 🔄 **Batch Processing** - Support multi-chapter parallel processing
+- 📊 **Real-time Progress** - Visual processing progress tracking
 
-### 🎨 **专业品质**
-- 🖼️ **4K高清输出** - 支持多种分辨率
-- 🎭 **角色一致性** - LoRA模型确保角色形象统一
-- 🎵 **智能配音** - 多种音色，情感丰富
+### 🎨 **Professional Quality**
+- 🖼️ **4K HD Output** - Support multiple resolutions
+- 🎭 **Character Consistency** - LoRA models ensure unified character appearance
+- 🎵 **Smart Dubbing** - Multiple voice tones with rich emotions
 
 </td>
 <td width="50%">
 
-### 🧠 **智能理解**
-- 📖 **深度文本分析** - AI理解故事情节和情感
-- 👥 **角色识别** - 自动识别和管理多个角色
-- 🎬 **场景生成** - 智能生成符合情节的视觉场景
+### 🧠 **Intelligent Understanding**
+- 📖 **Deep Text Analysis** - AI understands story plots and emotions
+- 👥 **Character Recognition** - Automatic identification and management of multiple characters
+- 🎬 **Scene Generation** - Intelligently generate visual scenes matching the plot
 
-### 🔧 **灵活配置**
-- 🎛️ **参数可调** - 200+配置项，满足个性化需求
-- 🔌 **模块化设计** - 可独立使用各个功能模块
-- 🌐 **多服务支持** - 支持多种AI服务商
+### 🔧 **Flexible Configuration**
+- 🎛️ **Adjustable Parameters** - 200+ configuration options for personalized needs
+- 🔌 **Modular Design** - Independent use of functional modules
+- 🌐 **Multi-service Support** - Support multiple AI service providers
 
 </td>
 </tr>
 </table>
 
-## ✨ 核心特性
+## ✨ Core Features
 
-### 🧠 智能文本处理
-- **多LLM支持** - OpenAI GPT-3.5/4 / DeepSeek
-- **智能分段** - 自动识别章节和段落结构
-- **内容分析** - AI理解文本内容并生成描述
-- **角色名替换** - 支持自定义角色名和LoRA模型映射
-- **多语言支持** - 支持中英文内容处理
+### 🧠 Intelligent Text Analysis
+- **Semantic Analysis** - Deep text understanding based on large language models
+- **Character Recognition** - Automatic identification and mapping of story characters, support custom character configuration
+- **Scene Extraction** - Intelligent extraction of scene descriptions and visual elements
+- **Format Support** - Support Markdown, TXT and other input formats
+- **Sentence Optimization** - Intelligent merging of short sentences to ensure semantic integrity
 
-### 🎨 AI图像生成
-- **Stable Diffusion** - 高质量AI图像生成
-- **LoRA模型支持** - 风格化图像定制
-- **批量处理** - 多线程并发生成
-- **参数可调** - 丰富的生成参数配置
+### 🎨 Multi-platform Image Generation
+- **Stable Diffusion** - Local SD WebUI API support
+- **LiblibAI** - Cloud AI painting service integration
+- **ComfyUI** - Professional image generation workflow
+- **Parallel Processing** - Multi-threaded batch generation, significantly improving efficiency
+- **Smart Prompts** - Automatic optimization and style control
+- **LoRA Support** - Flexible model fine-tuning and style customization
 
-### 🎙️ 语音合成
-- **Azure TTS** - 微软认知服务语音合成
-- **多种音色** - 支持多种中文语音角色
-- **情感表达** - 可配置语音风格和情感
-- **高质量输出** - 自然流畅的语音效果
+### 🎵 Professional Voice Synthesis
+- **Azure TTS** - Microsoft Cognitive Services high-quality voice synthesis
+- **SSML Support** - Complete Speech Synthesis Markup Language support
+- **Multi-dimensional Control** - Precise control of speed, pitch, volume, emotional expression
+- **Asynchronous Processing** - Efficient concurrent voice generation
+- **Silence Optimization** - Automatic detection and removal of silent segments
 
-### 🎬 视频制作
-- **自动合成** - 图像、语音、字幕自动合成
-- **专业字幕** - 可自定义字体、颜色、位置
-- **视觉特效** - 支持多种视频转场效果
-- **高清输出** - 支持多种分辨率和格式
+### 🎬 Intelligent Video Composition
+- **MoviePy Engine** - Professional video processing capabilities
+- **Auto Sync** - Intelligent synchronization of images, audio, and subtitles
+- **Effects Support** - Multiple visual effects and transition animations
+- **Subtitle System** - Automatic generation and style customization
+- **Background Music** - Intelligent audio mixing and fade in/out
+- **Multi-format Output** - Support multiple video formats and quality options
 
-### 📚 智能章节管理
-- **🔍 自动识别** - 智能解析章节结构，支持多种格式
-- **⚡ 并行处理** - 多线程处理，大幅提升生成速度
-- **🧹 智能清理** - 自动管理临时文件，保护重要输出
-- **📊 进度可视化** - 实时显示处理进度和预估完成时间
-- **🛡️ 断点续传** - 支持中断恢复，避免重复处理
-- **📁 文件保护** - 智能识别重要文件，避免误删  
+### 📚 Advanced Features
+- **Multi-chapter Processing** - Support chapter-based processing of long content
+- **Semantic Analyzer** - Independent story semantic analysis module
+- **Viral Video Generation** - Specialized short video content generator
+- **Story Generator** - AI-driven original story creation
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 📋 系统要求
+### 📋 System Requirements
 
 <table>
 <tr>
-<td><strong>💻 操作系统</strong></td>
+<td><strong>💻 Operating System</strong></td>
 <td>Windows 10+ / macOS 10.15+ / Ubuntu 18.04+</td>
 </tr>
 <tr>
-<td><strong>🐍 Python版本</strong></td>
-<td>3.10+ (推荐 3.11)</td>
+<td><strong>🐍 Python Version</strong></td>
+<td>3.10+ (Recommended 3.11)</td>
 </tr>
 <tr>
-<td><strong>💾 内存要求</strong></td>
-<td>8GB+ (推荐 16GB，支持更快的并行处理)</td>
+<td><strong>💾 Memory Requirements</strong></td>
+<td>8GB+ (Recommended 16GB for faster parallel processing)</td>
 </tr>
 <tr>
-<td><strong>💿 存储空间</strong></td>
-<td>5GB+ (包含模型文件和输出缓存)</td>
+<td><strong>💿 Storage Space</strong></td>
+<td>5GB+ (Including model files and output cache)</td>
 </tr>
 <tr>
-<td><strong>🌐 网络要求</strong></td>
-<td>稳定网络连接 (用于AI服务调用)</td>
+<td><strong>🌐 Network Requirements</strong></td>
+<td>Stable network connection (for AI service calls)</td>
 </tr>
 <tr>
-<td><strong>🎮 GPU支持</strong></td>
-<td>可选 (NVIDIA GPU可加速本地Stable Diffusion)</td>
+<td><strong>🎮 GPU Support</strong></td>
+<td>Optional (NVIDIA GPU can accelerate local Stable Diffusion)</td>
 </tr>
 </table>
 
-> **💡 性能提示**: 配置越高，生成速度越快。推荐配置可实现3分钟生成1000字视频。
+> **💡 Performance Tip**: Higher configuration means faster generation. Recommended configuration can achieve 3-minute generation of 1000-word videos.
 
-### 🛠️ 安装步骤
+### 🛠️ Installation Steps
 
-#### 1. 克隆项目
+#### 1. Clone Project
 ```bash
 git clone https://github.com/story-flow/story-flow.git
 cd story-flow
 ```
 
-#### 2. 环境准备
+#### 2. Environment Setup
 ```bash
-# 使用 uv 管理依赖（推荐）
+# Use uv for dependency management (recommended)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 创建虚拟环境并安装依赖
+# Create virtual environment and install dependencies
 uv sync
 
-# 激活虚拟环境（可选，uv run 会自动激活）
+# Activate virtual environment (optional, uv run will auto-activate)
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate  # Windows
 ```
 
-#### 3. 配置API服务
+#### 3. Configure API Services
 ```bash
-# 复制配置模板
+# Copy configuration template
 cp .env.example .env
 
-# 编辑配置文件，填入你的API密钥
-nano .env  # 或使用你喜欢的编辑器
+# Edit configuration file, fill in your API keys
+nano .env  # or use your preferred editor
 ```
 
-#### 4. 验证安装
+#### 4. Verify Installation
 ```bash
-# 运行环境设置脚本（自动检查和配置环境）
+# Run environment setup script (automatically check and configure environment)
 ./setup.sh
 
-# 测试系统连接
-uv run python -m tests.examples.test_liblib_config  # 测试图像生成
-uv run python -m src.pipeline.text_analyzer --test  # 测试文本分析
+# Test system connections
+uv run python -m tests.examples.test_liblib_config  # Test image generation
+uv run python -m src.pipeline.text_analyzer --test  # Test text analysis
 ```
 
-> **✅ 安装成功标志**: 看到 "✓ All systems ready!" 表示安装成功
+> **✅ Installation Success Indicator**: Seeing "✓ All systems ready!" indicates successful installation
 > 
-> **🔧 故障排除**: 如遇问题，脚本会提供详细错误信息和解决方案
+> **🔧 Troubleshooting**: If you encounter problems, the script will provide detailed error information and solutions
 
-### 🎬 三步开始创作
+### 🎬 Three Steps to Start Creating
 
-#### 🎯 **方式一：一键生成（推荐新手）**
+#### 🎯 **Method 1: One-click Generation (Recommended for beginners)**
 
 ```bash
-# 1️⃣ 准备内容文件
+# 1️⃣ Prepare content files
 cp data/input/input.md.template data/input/input.md
 cp data/input/character_mapping.json.template data/input/character_mapping.json
 
-# 2️⃣ 编辑故事内容（使用任意文本编辑器）
-# 📝 编辑 data/input/input.md - 添加您的故事
-# 👥 编辑 data/input/character_mapping.json - 配置角色
+# 2️⃣ Prepare story content (choose one of three)
+# 📝 Manual editing: Edit data/input/input.md to add story content
+# 👥 Configure characters: Edit data/input/character_mapping.json to set character mapping
+# 🚀 Smart generation: Use viral copywriting generation tool to automatically create content
+#   uv run main.py --viral
+# 📖 Story generation: Use story generation tool to directly generate stories and automatically configure character recognition
+#   uv run main.py --generate
 
-# 3️⃣ 一键生成视频
-python main.py --auto
+# 3️⃣ One-click video generation
+uv run main.py --auto
 ```
 
-#### 🎛️ **方式二：交互式生成（推荐进阶用户）**
+#### 🎛️ **Method 2: Interactive Generation (Recommended for advanced users)**
 
 ```bash
-# 启动交互式菜单
-python main.py
+# Launch interactive menu
+uv run main.py
 
-# 菜单功能：
-# 📊 1. 查看系统状态
-# 🎬 2. 开始生成视频  
-# 🔧 3. 配置参数
-# 📁 4. 管理文件
-# 🧹 5. 清理输出
+# Menu functions:
+# 📊 1. View system status
+# 🎬 2. Start video generation  
+# 🔧 3. Configure parameters
+# 📁 4. Manage files
+# 🧹 5. Clean output
 ```
 
-#### 📊 **生成效果预览**
+#### 📊 **Generation Effect Preview**
 
-| 输入文本长度 | 预估生成时间 | 输出视频时长 | 文件大小 |
-|-------------|-------------|-------------|----------|
-| 500字 | 1-2分钟 | 30-60秒 | 10-20MB |
-| 1000字 | 2-3分钟 | 1-2分钟 | 20-40MB |
-| 2000字 | 4-6分钟 | 2-4分钟 | 40-80MB |
-| 5000字+ | 10-15分钟 | 5-10分钟 | 100-200MB |
+| Input Text Length | Estimated Generation Time | Output Video Duration | File Size |
+|-------------------|---------------------------|----------------------|----------|
+| 500 words | 1-2 minutes | 30-60 seconds | 10-20MB |
+| 1000 words | 2-3 minutes | 1-2 minutes | 20-40MB |
+| 2000 words | 4-6 minutes | 2-4 minutes | 40-80MB |
+| 5000+ words | 10-15 minutes | 5-10 minutes | 100-200MB |
 
-> **⚡ 性能优化**: 使用多线程并行处理，实际速度可能更快
+> **⚡ Performance Optimization**: Using multi-threaded parallel processing, actual speed may be faster
 
-#### 📚 **多章节智能处理**
+#### 🎬 **Viral Copywriting Smart Generation**
 
-- 🔍 **自动识别**: 支持 "第X章"、"Chapter X"、"## 章节" 等多种格式
-- ⚡ **并行生成**: 多章节同时处理，大幅提升效率
-- 🎯 **独立输出**: 每章节生成独立视频，便于管理和分享
-- 🛡️ **智能保护**: 自动备份重要文件，防止意外丢失
-- 📊 **进度追踪**: 实时显示各章节处理状态和预估完成时间
+- 🎯 **Theme Customization**: Support any video theme input, AI intelligently understands creative intent
+- 🎨 **Style Diversity**: Provide multiple video style choices (warm healing, funny humor, professional serious, etc.)
+- 📊 **Scene Planning**: Intelligently plan video scene count and content structure
+- ✨ **Prompt Optimization**: Automatically generate high-quality Flux1 image generation prompts
+- 🚀 **One-click Generation**: From creativity to finished product, full-process automation
 
-#### 方式二：分步执行
 ```bash
-# 1. 文本分析和分段
+# Launch viral copywriting generator
+uv run main.py --viral
+
+# Interactive input:
+# 🎯 Video theme (e.g., workplace inspirational story, food making tutorial)
+# 🎨 Style hints (e.g., warm healing style, funny humor style)
+# 📊 Scene count (recommended 3-8 scenes)
+```
+
+#### 🎛️ **Method 2: Interactive Generation (Recommended for advanced users)**
+
+```bash
+# Launch interactive menu
+uv run main.py --generate
+
+# Menu functions:
+# 📊 1. View system status
+# 🎬 2. Start video generation  
+# 🔧 3. Configure parameters
+# 📁 4. Manage files
+# 🧹 5. Clean output
+```
+
+#### Method 3: Step-by-step Execution
+```bash
+# 1. Text analysis and segmentation
 uv run python -m src.pipeline.text_analyzer
 
-# 2. 生成图像
+# 2. Generate images
 uv run python -m src.pipeline.image_generator
 
-# 3. 语音合成
+# 3. Voice synthesis
 uv run python -m src.pipeline.voice_synthesizer
 
-# 4. 视频合成
+# 4. Video composition
 uv run python -m src.pipeline.video_composer
 ```
 
+## 📚 Full Documentation
 
+### 🎯 User Documentation
+- **[📖 User Guide](docs/user-guide.md)** - Complete installation and usage tutorial
+- **[🔧 Environment Setup](docs/environment-setup.md)** - Environment setup and configuration instructions
 
-## 📚 完整文档
+### 🛠️ Development Documentation  
+- **[🏗️ Development Guide](docs/development-guide.md)** - Code structure and development instructions
+- **[📚 API Reference](docs/api-reference.md)** - Configuration parameters and interface documentation
 
-### 🎯 用户文档
-- **[📖 用户指南](docs/user-guide.md)** - 完整的安装和使用教程
-- **[🔧 环境配置](docs/environment-setup.md)** - 环境搭建和配置说明
+## ⚙️ Configuration Instructions
 
-### 🛠️ 开发文档  
-- **[🏗️ 开发指南](docs/development-guide.md)** - 代码结构和开发说明
-- **[📚 API参考](docs/api-reference.md)** - 配置参数和接口文档
+### 🔑 Required API Services
 
-## ⚙️ 配置说明
+#### 1. Large Language Model (choose one)
 
-### 🔑 必需的API服务
-
-#### 1. 大语言模型 (二选一)
-
-**DeepSeek API (推荐)**
+**DeepSeek API (Recommended)**
 ```env
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=sk-your-deepseek-key
@@ -271,23 +302,23 @@ OPENAI_API_KEY=sk-your-openai-key
 OPENAI_MODEL=gpt-3.5-turbo-16k
 ```
 
-#### 2. Azure 语音服务
+#### 2. Azure Speech Service
 ```env
 AZURE_SPEECH_KEY=your-azure-speech-key
 AZURE_SPEECH_REGION=eastasia
 AZURE_VOICE_NAME=zh-CN-YunxiNeural
 ```
 
-#### 3. 图像生成服务 (二选一)
+#### 3. Image Generation Service (choose one)
 
-**LiblibAI F.1 模型 (推荐)**
+**LiblibAI F.1 Model (Recommended)**
 ```env
-# LiblibAI 基础配置
+# LiblibAI basic configuration
 LIBLIB_ACCESS_KEY=your-liblib-access-key
 LIBLIB_SECRET_KEY=your-liblib-secret-key
 LIBLIB_ENABLED=true
 
-# F.1 模型默认参数
+# F.1 model default parameters
 F1_DEFAULT_WIDTH=768
 F1_DEFAULT_HEIGHT=1024
 F1_DEFAULT_STEPS=20
@@ -306,101 +337,101 @@ SD_WIDTH=1360
 SD_HEIGHT=1024
 ```
 
-> **💡 提示**: F.1 模型提供更高质量的图像生成效果，支持更多自定义参数。详细配置请参考 [F.1 配置指南](docs/f1_configuration_guide.md)。
+> **💡 Tip**: F.1 model provides higher quality image generation effects and supports more custom parameters. For detailed configuration, please refer to [F.1 Configuration Guide](docs/f1_configuration_guide.md).
 
-### 📝 输入文件配置
+### 📝 Input File Configuration
 
-#### 角色映射配置
+#### Character Mapping Configuration
 
-首次使用需要创建角色映射配置文件：
+First-time use requires creating character mapping configuration file:
 
 ```bash
-# 复制模板文件
+# Copy template file
 cp data/input/character_mapping.json.template data/input/character_mapping.json
 ```
 
-编辑 `character_mapping.json` 配置角色名替换和LoRA编号：
+Edit `character_mapping.json` to configure character name replacement and LoRA numbers:
 
 ```json
 [
   {
     "original_name": "小雨",
-    "new_name": "红发女孩",
+    "new_name": "Red-haired Girl",
     "lora_id": "1"
   },
   {
     "original_name": "程宗扬",
-    "new_name": "30岁黑发大叔",
+    "new_name": "30-year-old Black-haired Man",
     "lora_id": "2"
   }
 ]
 ```
 
-#### 故事内容配置
+#### Story Content Configuration
 
 ```bash
-# 复制模板文件
+# Copy template file
 cp data/input/input.md.template data/input/input.md
 ```
 
-然后编辑 `input.md` 文件，添加您的故事内容。角色名将根据上述配置自动替换。
+Then edit the `input.md` file to add your story content. Character names will be automatically replaced according to the above configuration.
 
-### 🎛️ 高级配置
+### 🎛️ Advanced Configuration
 
 <details>
-<summary>点击查看完整配置选项</summary>
+<summary>Click to view complete configuration options</summary>
 
 ```env
-# 视频设置
+# Video settings
 VIDEO_FPS=24
 VIDEO_ENABLE_EFFECT=true
 VIDEO_EFFECT_TYPE=fade
 
-# 字幕设置
+# Subtitle settings
 SUBTITLE_FONTSIZE=48
 SUBTITLE_FONTCOLOR=white
 SUBTITLE_STROKE_COLOR=black
 SUBTITLE_STROKE_WIDTH=2
 
-# 性能设置
+# Performance settings
 MAX_WORKERS_IMAGE=3
 MAX_WORKERS_VIDEO=2
 MAX_WORKERS_TRANSLATION=5
 ```
 </details>
 
-📖 **详细配置指南**: [环境配置文档](docs/environment-setup.md)
+📖 **Detailed Configuration Guide**: [Environment Configuration Documentation](docs/environment-setup.md)
 
-## 🏗️ 系统架构
+## 🏗️ System Architecture
 
 <div align="center">
 
 ```mermaid
 graph TB
-    subgraph "📥 输入层"
-        A[📝 文本内容]
-        B[👥 角色配置]
-        C[⚙️ 生成参数]
+    subgraph "📥 Input Layer"
+        A[📝 Text Content]
+        B[👥 Character Configuration]
+        C[⚙️ Generation Parameters]
     end
     
-    subgraph "🧠 AI处理层"
-        D[🔍 智能文本分析]
-        E[📊 内容理解与分段]
-        F[🎨 AI图像生成]
-        G[🎙️ 语音合成]
+    subgraph "🧠 AI Processing Layer"
+        D[🔍 Intelligent Text Analysis]
+        E[📊 Content Understanding & Segmentation]
+        F[🎨 AI Image Generation]
+        G[🎙️ Voice Synthesis]
     end
     
-    subgraph "🎬 合成层"
-        H[🖼️ 图像处理]
-        I[🎵 音频处理]
-        J[📝 字幕生成]
-        K[🎞️ 视频合成]
+    subgraph "🎬 Composition Layer"
+        H[🖼️ Image Processing]
+        I[🎵 Audio Processing]
+        J[📝 Subtitle Generation]
+        K[🎞️ Video Composition]
     end
     
-    subgraph "📤 输出层"
-        L[📹 高清视频]
-        M[📊 处理报告]
-        N[📁 资源文件]
+    subgraph "📤 Output Layer"
+        L[📹 HD Video]
+        M[📊 Processing Report]
+        N[📁 Resource Files]
     end
     
     A --> D
@@ -427,247 +458,305 @@ graph TB
 
 </div>
 
-### 🔄 **处理流程详解**
+### 🔄 **Processing Flow Details**
 
-1. **📝 智能解析** - AI深度理解文本内容，识别情节、角色、场景
-2. **🎨 视觉生成** - 根据内容描述生成高质量配图，保持角色一致性
-3. **🎙️ 语音合成** - 将文本转换为自然流畅的中文语音
-4. **🎬 智能合成** - 自动同步图像、音频、字幕，生成专业视频
-5. **📤 优化输出** - 多格式输出，支持不同平台需求
+1. **📝 Intelligent Parsing** - AI deeply understands text content, identifies plots, characters, scenes
+2. **🎨 Visual Generation** - Generate high-quality illustrations based on content descriptions, maintaining character consistency
+3. **🎙️ Voice Synthesis** - Convert text to natural and fluent Chinese speech
+4. **🎬 Intelligent Composition** - Automatically synchronize images, audio, subtitles to generate professional videos
+5. **📤 Optimized Output** - Multi-format output supporting different platform needs
 
-### 📁 项目结构
+### 📁 Project Structure
 
 ```
 story-flow/
-├── 📁 src/                    # 核心源代码
-│   ├── 📄 config.py           # 配置管理
-│   ├── 📄 llm_client.py       # LLM客户端
-│   └── 📁 pipeline/           # 处理流水线
-│       ├── 📄 text_analyzer.py    # 文本分析（支持角色名替换）
-│       ├── 📄 image_generator.py  # 图像生成
-│       ├── 📄 voice_synthesizer.py # 语音合成
-│       └── 📄 video_composer.py   # 视频合成
-├── 📁 data/                   # 数据目录
-│   ├── 📁 input/             # 输入文件
-│   │   ├── 📄 character_mapping.json.template  # 角色映射模板
-│   │   └── 📄 input.md.template               # 故事内容模板
-│   ├── 📁 output/            # 输出文件
-│   │   ├── 📁 images/        # 生成的图像
-│   │   ├── 📁 audio/         # 生成的音频
-│   │   ├── 📁 videos/        # 生成的视频
-│   │   └── 📁 processed/     # 处理后的CSV文件
-│   └── 📁 temp/              # 临时文件
-├── 📁 tests/                  # 测试文件
-│   ├── 📁 unit/              # 单元测试
-│   ├── 📁 integration/       # 集成测试
-│   └── 📁 fixtures/          # 测试数据
-├── 📁 docs/                   # 文档
-├── 📄 main.py                # 主程序入口
-├── 📄 pyproject.toml         # 项目配置（uv管理）
-├── 📄 uv.lock               # 依赖锁定文件
-├── 📄 setup.sh              # 环境设置脚本
-└── 📄 cleanup.sh            # 清理脚本
+├── 📁 src/                           # Core source code
+│   ├── 📁 pipeline/                  # Processing pipeline modules
+│   │   ├── 📄 text_analyzer.py       # Intelligent text analyzer
+│   │   ├── 📄 image_generator.py      # Multi-platform image generator
+│   │   ├── 📄 voice_synthesizer.py    # Azure TTS voice synthesis
+│   │   └── 📄 video_composer.py       # MoviePy video composer
+│   ├── 📄 config.py                  # Unified configuration management system
+│   ├── 📄 llm_client.py             # LLM client (OpenAI/DeepSeek)
+│   ├── 📄 semantic_analyzer.py       # Semantic analyzer
+│   ├── 📄 story_generator.py         # AI story generator
+│   ├── 📄 viral_video_generator.py   # Viral video generator
+│   └── 📄 image_to_video.py          # Image-to-video module
+├── 📁 data/                          # Data directory
+│   ├── 📁 input/                     # Input files
+│   │   ├── 📄 character_mapping.json.template  # Character mapping template
+│   │   └── 📄 input.md.template               # Story content template
+│   ├── 📁 output/                    # Output file directory
+│   │   ├── 📁 txt/                   # Text analysis results (JSON)
+│   │   ├── 📁 images/                # AI-generated images
+│   │   ├── 📁 voices/                # TTS voice files
+│   │   ├── 📁 videos/                # Final video output
+│   │   ├── 📁 video_clips/           # Video clips
+│   │   └── 📁 temp/                  # Temporary files
+│   └── 📁 processed/                 # Processed CSV files
+├── 📁 tests/                         # Test suite
+│   ├── 📁 unit/                      # Unit tests
+│   ├── 📁 integration/               # Integration tests
+│   └── 📁 fixtures/                  # Test data
+├── 📁 docs/                          # Project documentation
+│   └── 📄 用户操作教程.md            # Detailed usage tutorial
+├── 📁 workflows/                     # ComfyUI workflow configuration
+├── 📄 main.py                        # Main program entry
+├── 📄 pyproject.toml                 # Project configuration and dependencies
+├── 📄 .env.example                   # Environment variable template
+├── 📄 setup.sh                      # Environment setup script
+└── 📄 cleanup.sh                    # Cleanup script
 ```
 
-## 🎯 使用场景
+## 🎯 Use Cases
 
-- 📚 **小说可视化** - 将小说章节转换为视频
-- 🎓 **教育内容** - 制作教学视频和课件
-- 📖 **故事讲述** - 儿童故事、寓言等
-- 🎬 **内容创作** - 自媒体视频制作
-- 📱 **社交媒体** - 短视频内容生成
+### 📚 Content Creation
+- **Story Visualization** - Convert novels, fairy tales and other text content into animated videos
+- **Self-media Production** - Quickly generate video content for YouTube, Bilibili and other platforms
+- **Audiobooks** - Immersive reading experience combining images and voice
 
-## 🔧 技术栈
+### 🎓 Education and Training
+- **Course Production** - Convert teaching materials into multimedia courses
+- **Knowledge Visualization** - Visual representation of abstract concepts
+- **Language Learning** - Audio-visual combined learning of multilingual content
+
+### 💼 Business Applications
+- **Product Demonstrations** - Quickly generate product introduction and instruction videos
+- **Marketing Content** - Video visualization of brand stories and advertising creativity
+- **Training Materials** - Corporate training and operation guide videos
+
+### 📱 Social Media
+- **Short Video Creation** - Content generation for TikTok, Douyin and other platforms
+- **Story Sharing** - Video expression of personal experiences and creative stories
+- **Viral Marketing** - Use AI to generate eye-catching creative content
+
+### 🚀 Innovative Applications
+- **Prototype Validation** - Quickly test video creativity and concepts
+- **Personalized Content** - Customized video generation based on user preferences
+- **Multilingual Localization** - Multilingual video versions of the same content
+
+## 🔧 Technology Stack
+
+### 🧠 AI Service Integration
+- **Large Language Models**: OpenAI GPT-4 / DeepSeek Chat
+- **Image Generation**: Stable Diffusion WebUI / LiblibAI / ComfyUI
+- **Voice Synthesis**: Azure Cognitive Services TTS
+- **Semantic Analysis**: Transformer-based text understanding
+
+### 💻 Core Technologies
+- **Python 3.10+**: Modern Python feature support
+- **Asynchronous Programming**: asyncio high-concurrency processing
+- **Parallel Computing**: ThreadPoolExecutor multi-threading optimization
+- **MoviePy**: Professional video processing engine
+- **PIL/Pillow**: Image processing and effects
+
+### 📦 Dependency Management
+- **uv**: Modern Python package manager
+- **pyproject.toml**: Standardized project configuration
+- **python-dotenv**: Environment variable management
+- **pydantic**: Data validation and configuration management
+
+### 🔧 Development Tools
+- **pytest**: Complete testing framework
+- **tqdm**: Progress bars and user experience optimization
+- **pathlib**: Modern file path handling
+- **logging**: Structured logging system
+
+### 🌐 API Integration
+- **requests**: HTTP client
+- **websocket-client**: WebSocket communication
+- **azure-cognitiveservices-speech**: Azure TTS SDK
+- **openai**: OpenAI official SDK
 
 <div align="center">
 
-| 技术领域 | 核心技术 | 版本要求 | 说明 |
-|---------|---------|---------|------|
-| **🐍 核心语言** | Python | 3.10+ | 现代Python特性支持 |
-| **📦 包管理** | uv | Latest | 极速依赖管理 |
-| **🧠 AI大模型** | OpenAI/DeepSeek | API | 智能文本理解 |
-| **🎨 图像生成** | Stable Diffusion/F.1 | API | 高质量AI绘图 |
-| **🎙️ 语音合成** | Azure TTS | API | 真人级中文语音 |
-| **🎬 视频处理** | MoviePy | 1.0+ | 专业视频编辑 |
-| **📊 数据处理** | Pandas/NumPy | Latest | 高效数据操作 |
-| **🖼️ 图像处理** | Pillow/OpenCV | Latest | 图像优化处理 |
-| **🎵 音频处理** | Pydub/librosa | Latest | 音频编辑合成 |
-| **🧪 测试框架** | pytest | Latest | 完整测试覆盖 |
+| Technology Domain | Core Technology | Version Requirements | Description |
+|-------------------|-----------------|---------------------|-------------|
+| **🐍 Core Language** | Python | 3.10+ | Modern Python feature support |
+| **📦 Package Management** | uv | Latest | Ultra-fast dependency management |
+| **🧠 AI Large Models** | OpenAI/DeepSeek | API | Intelligent text understanding |
+| **🎨 Image Generation** | Stable Diffusion/F.1 | API | High-quality AI drawing |
+| **🎙️ Voice Synthesis** | Azure TTS | API | Human-level Chinese voice |
+| **🎬 Video Processing** | MoviePy | 1.0+ | Professional video editing |
+| **📊 Data Processing** | Pandas/NumPy | Latest | Efficient data operations |
+| **🖼️ Image Processing** | Pillow/OpenCV | Latest | Image optimization processing |
+| **🎵 Audio Processing** | Pydub/librosa | Latest | Audio editing and synthesis |
+| **🧪 Testing Framework** | pytest | Latest | Complete test coverage |
 
 </div>
 
-### 🌟 **技术亮点**
+### 🌟 **Technical Highlights**
 
-- **⚡ 异步处理**: 基于asyncio的高并发架构
-- **🔧 模块化设计**: 松耦合组件，易于扩展和维护  
-- **🛡️ 错误恢复**: 完善的异常处理和自动重试机制
-- **📊 性能监控**: 内置性能分析和资源使用统计
-- **🔒 安全保障**: API密钥加密存储，安全的文件操作
+- **⚡ Asynchronous Processing**: High-concurrency architecture based on asyncio
+- **🔧 Modular Design**: Loosely coupled components, easy to extend and maintain  
+- **🛡️ Error Recovery**: Comprehensive exception handling and automatic retry mechanisms
+- **📊 Performance Monitoring**: Built-in performance analysis and resource usage statistics
+- **🔒 Security Assurance**: Encrypted storage of API keys, secure file operations
 
-## 🧹 项目维护
+## 🧹 Project Maintenance
 
-### 清理生成文件
+### Clean Generated Files
 ```bash
-# 运行清理脚本（交互式选择清理内容）
+# Run cleanup script (interactive selection of cleanup content)
 ./cleanup.sh
 
-# 清理脚本功能：
-# - 清理生成的图片、音频文件
-# - 清理临时文件和缓存
-# - 整理输入文件到指定目录
-# - 显示磁盘空间使用统计
-# - 自动保留.gitkeep文件和videos目录中的重要文件
+# Cleanup script functions:
+# - Clean generated images and audio files
+# - Clean temporary files and cache
+# - Organize input files to specified directory
+# - Display disk space usage statistics
+# - Automatically preserve .gitkeep files and important files in videos directory
 ```
 
-**🛡️ 智能清理保护：**
-- 程序内置智能清理功能，在处理新章节前自动清理临时文件
-- 自动保护重要文件：`.gitkeep`文件和`videos`目录中的视频文件
-- 只清理必要的临时文件（图片、音频、CSV），避免误删重要内容
-- 清理过程中如遇错误不会中断主流程，确保程序稳定运行
+**🛡️ Smart Cleanup Protection:**
+- Built-in smart cleanup function automatically cleans temporary files before processing new chapters
+- Automatically protect important files: `.gitkeep` files and video files in `videos` directory
+- Only clean necessary temporary files (images, audio, CSV), avoid accidentally deleting important content
+- Cleanup process errors won't interrupt main flow, ensuring program stability
 
-## 🤝 贡献指南
+## 🤝 Contribution Guidelines
 
-我们欢迎所有形式的贡献！请查看 [贡献指南](CONTRIBUTING.md) 了解详情。
+We welcome all forms of contributions! Please check the [Contribution Guidelines](CONTRIBUTING.md) for details.
 
-### 🐛 问题反馈
+### 🐛 Issue Feedback
 
-如果您遇到问题或有建议，请：
-1. 查看 [常见问题](docs/FAQ.md)
-2. 搜索现有的 [Issues](https://github.com/story-flow/story-flow/issues)
-3. 创建新的 Issue 并提供详细信息
+If you encounter problems or have suggestions, please:
+1. Check [FAQ](docs/FAQ.md)
+2. Search existing [Issues](https://github.com/story-flow/story-flow/issues)
+3. Create new Issue with detailed information
 
-### 📝 开发计划
+### 📝 Development Plan
 
-#### ✅ **已实现功能** (v0.1.0)
+#### ✅ **Implemented Features** (v0.1.0)
 
 <table>
 <tr>
 <td width="50%">
 
-**🎯 核心功能**
-- [x] 📝 智能文本分析与分段
-- [x] 🎨 AI图像生成 (SD/F.1)
-- [x] 🎙️ 智能语音合成 (Azure TTS)
-- [x] 🎬 自动视频合成
-- [x] 👥 多角色管理系统
-- [x] 📚 多章节批量处理
+**🎯 Core Functions**
+- [x] 📝 Intelligent text analysis and segmentation
+- [x] 🎨 AI image generation (SD/F.1)
+- [x] 🎙️ Intelligent voice synthesis (Azure TTS)
+- [x] 🎬 Automatic video composition
+- [x] 👥 Multi-character management system
+- [x] 🎬 Viral copywriting smart generation
 
 </td>
 <td width="50%">
 
-**🔧 系统特性**
-- [x] 📊 多格式数据支持
-- [x] 🧪 完整测试覆盖 (90%+)
-- [x] 🧹 智能清理系统
-- [x] ⚡ 现代化包管理 (uv)
-- [x] 🛡️ 错误恢复机制
-- [x] 📈 性能监控统计
+**🔧 System Features**
+- [x] 📊 Multi-format data support
+- [x] 🧪 Complete test coverage (90%+)
+- [x] 🧹 Smart cleanup system
+- [x] ⚡ Modern package management (uv)
+- [x] 🛡️ Error recovery mechanism
+- [x] 📈 Performance monitoring statistics
 
 </td>
 </tr>
 </table>
 
-#### 🚀 **开发路线图** (v0.2.0 - v1.0.0)
+#### 🚀 **Development Roadmap** (v0.2.0 - v1.0.0)
 
-**🎬 下一版本 (v0.2.0) - 预计2024年Q2**
-- [ ] 🎞️ 图生视频功能 - Runway/Pika AI集成
-- [ ] 🎙️ GPT-SoVITS语音克隆 - 个性化语音定制
-- [ ] 📱 剪映草稿生成 - 一键导入专业剪辑软件
-- [ ] 🎵 AI音乐生成 - 智能背景音乐配置
+**🎬 Next Version (v0.2.0) - Expected Q2 2024**
+- [ ] 🎞️ Image-to-video functionality - Runway/Pika AI integration
+- [ ] 🎙️ GPT-SoVITS voice cloning - Personalized voice customization
+- [ ] 📱 JianYing draft generation - One-click import to professional editing software
+- [ ] 🎵 AI music generation - Smart background music configuration
 
-**🌐 中期规划 (v0.5.0) - 预计2024年Q3**
-- [ ] 🖥️ Web界面 - 可视化操作界面
-- [ ] 🐳 Docker部署 - 一键容器化部署
-- [ ] 🔄 实时预览 - 生成过程可视化
-- [ ] 📊 数据分析 - 生成效果统计分析
+**🌐 Medium-term Planning (v0.5.0) - Expected Q3 2024**
+- [ ] 🖥️ Web interface - Visual operation interface
+- [ ] 🐳 Docker deployment - One-click containerized deployment
+- [ ] 🔄 Real-time preview - Generation process visualization
+- [ ] 📊 Data analysis - Generation effect statistical analysis
 
-#### 系统优化
-- [ ] 🎤 更多语音服务商支持 - 扩展语音合成选择
-- [ ] 🎞️ 视频模板系统 - 提供多样化视频风格模板
-- [ ] 👀 实时预览功能 - 生成过程可视化预览
-- [ ] 🌐 Web界面开发 - 提供友好的网页操作界面
-- [ ] 🐳 Docker容器化部署 - 简化部署和分发流程
-- [ ] ⚡ 性能优化 - 多线程处理和缓存机制
-- [ ] 🔄 增量更新 - 支持部分内容更新而非全量重新生成
+#### System Optimization
+- [ ] 🎤 More voice service provider support - Expand voice synthesis options
+- [ ] 🎞️ Video template system - Provide diverse video style templates
+- [ ] 👀 Real-time preview function - Visual preview of generation process
+- [ ] 🌐 Web interface development - Provide friendly web operation interface
+- [ ] 🐳 Docker containerized deployment - Simplify deployment and distribution process
+- [ ] ⚡ Performance optimization - Multi-threading processing and caching mechanisms
+- [ ] 🔄 Incremental updates - Support partial content updates instead of full regeneration
 
-**🌟 长期愿景 (v1.0.0+) - 2024年Q4及以后**
-- [ ] 🤖 AI Agent系统 - 全自动内容创作代理
-- [ ] 🔥 热点内容转化 - 自动抓取网络热点生成视频
-- [ ] 🎯 个性化推荐 - 基于用户偏好的智能推荐
-- [ ] 🌍 多语言支持 - 全球化内容创作平台
-- [ ] 🏢 企业级功能 - 团队协作、权限管理、API服务
+**🌟 Long-term Vision (v1.0.0+) - Q4 2024 and beyond**
+- [ ] 🤖 AI Agent system - Fully automated content creation agents
+- [ ] 🔥 Hot content conversion - Automatically capture network hotspots to generate videos
+- [ ] 🎯 Personalized recommendations - Smart recommendations based on user preferences
+- [ ] 🌍 Multi-language support - Global content creation platform
+- [ ] 🏢 Enterprise features - Team collaboration, permission management, API services
 
-> **📈 发展目标**: 成为全球领先的AI视频生成平台，服务百万内容创作者
+> **📈 Development Goal**: Become the world's leading AI video generation platform, serving millions of content creators
 
-## 📞 联系方式
+## 📞 Contact
 
-如果您在使用过程中遇到问题或有任何建议，欢迎通过以下方式联系我们：
+If you encounter problems during use or have any suggestions, please contact us through the following methods:
 
-### 🐛 问题反馈
-- **GitHub Issues**: [提交Bug报告或功能请求](https://github.com/story-flow/story-flow/issues)
-- **问题模板**: 请使用相应的Issue模板，提供详细的问题描述和复现步骤
+### 🐛 Issue Feedback
+- **GitHub Issues**: [Submit Bug Reports or Feature Requests](https://github.com/story-flow/story-flow/issues)
+- **Issue Templates**: Please use corresponding Issue templates, provide detailed problem descriptions and reproduction steps
 
-### 💬 交流讨论
-- **GitHub Discussions**: [参与项目讨论](https://github.com/story-flow/story-flow/discussions)
-- **功能建议**: 在Discussions中分享您的想法和建议
-- **使用经验**: 分享您的使用心得和最佳实践
+### 💬 Communication and Discussion
+- **GitHub Discussions**: [Participate in Project Discussions](https://github.com/story-flow/story-flow/discussions)
+- **Feature Suggestions**: Share your ideas and suggestions in Discussions
+- **Usage Experience**: Share your usage insights and best practices
 
-### 📧 直接联系
-- **项目维护者**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
-- **技术支持**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
-- **商务合作**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
+### 📧 Direct Contact
+- **Project Maintainer**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
+- **Technical Support**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
+- **Business Cooperation**: [dasenrising@gmail.com](mailto:dasenrising@gmail.com)
 
-### 🌐 社交媒体
-- **微信群**: 扫描下方二维码加入交流群
+### 🌐 Social Media
+- **WeChat Group**: Scan the QR code below to join the communication group
 
 <div align="center">
-  <img src="docs/images/WechatIMG1343.png" alt="微信群二维码" width="200"/>
-  <p><em>🎯 扫描加入Story Flow创作者社群</em></p>
-  <p><strong>💬 1000+创作者 • 📚 经验分享 • 🔧 技术支持 • 🎁 独家资源</strong></p>
+  <img src="docs/images/WechatIMG1343.png" alt="WeChat Group QR Code" width="200"/>
+  <p><em>🎯 Scan to join Story Flow Creator Community</em></p>
+  <p><strong>💬 1000+ Creators • 📚 Experience Sharing • 🔧 Technical Support • 🎁 Exclusive Resources</strong></p>
 </div>
 
 ---
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 [MIT 许可证](LICENSE) - 详情请查看 LICENSE 文件。
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-感谢以下开源项目和服务：
-- [OpenAI](https://openai.com/) - GPT模型服务
-- [DeepSeek](https://www.deepseek.com/) - 高性价比LLM服务
-- [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/) - 语音合成服务
-- [Stable Diffusion](https://stability.ai/) - AI图像生成
-- [MoviePy](https://zulko.github.io/moviepy/) - 视频处理库
-- [uv](https://github.com/astral-sh/uv) - 现代化Python包管理器
+Thanks to the following open source projects and services:
+- [OpenAI](https://openai.com/) - GPT model services
+- [DeepSeek](https://www.deepseek.com/) - Cost-effective LLM services
+- [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/) - Speech synthesis services
+- [Stable Diffusion](https://stability.ai/) - AI image generation
+- [MoviePy](https://zulko.github.io/moviepy/) - Video processing library
+- [uv](https://github.com/astral-sh/uv) - Modern Python package manager
 
 ---
 
 <div align="center">
 
-## 🌟 **支持项目发展**
+## 🌟 **Support Project Development**
 
-如果 Story Flow 帮助您创作出精彩内容，请考虑支持我们：
+If Story Flow helps you create amazing content, please consider supporting us:
 
 [![GitHub stars](https://img.shields.io/github/stars/story-flow/story-flow?style=social)](https://github.com/story-flow/story-flow/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/story-flow/story-flow?style=social)](https://github.com/story-flow/story-flow/network)
 [![GitHub watchers](https://img.shields.io/github/watchers/story-flow/story-flow?style=social)](https://github.com/story-flow/story-flow/watchers)
 
-**⭐ 点个Star** • **🔄 分享给朋友** • **💬 参与讨论** • **🐛 反馈问题**
+**⭐ Give us a Star** • **🔄 Share with Friends** • **💬 Join Discussions** • **🐛 Report Issues**
 
 ---
 
-### 📚 **快速导航**
+### 📚 **Quick Navigation**
 
-[🏠 项目主页](https://github.com/story-flow/story-flow) • [📖 使用文档](docs/) • [🎬 视频教程](#) • [💬 社群讨论](https://github.com/story-flow/story-flow/discussions)
+[🏠 Project Home](https://github.com/story-flow/story-flow) • [📖 Documentation](docs/) • [🎬 Video Tutorials](#) • [💬 Community Discussions](https://github.com/story-flow/story-flow/discussions)
 
-[🐛 问题反馈](https://github.com/story-flow/story-flow/issues) • [💡 功能建议](https://github.com/story-flow/story-flow/discussions/categories/ideas) • [🤝 参与贡献](CONTRIBUTING.md) • [📄 更新日志](CHANGELOG.md)
+[🐛 Issue Feedback](https://github.com/story-flow/story-flow/issues) • [💡 Feature Suggestions](https://github.com/story-flow/story-flow/discussions/categories/ideas) • [🤝 Contribute](CONTRIBUTING.md) • [📄 Changelog](CHANGELOG.md)
 
 ---
 
-**💝 让每个人都能成为优秀的内容创作者**
+**💝 Empowering everyone to become an excellent content creator**
 
-*Story Flow - 用AI点亮创作之光* ✨
+*Story Flow - Illuminate creativity with AI* ✨
 
 </div>

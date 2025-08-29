@@ -27,7 +27,7 @@
     "inputs": {
       "prompt": "Translucent Chinese dragon, pearly white scales, delicate white whiskers, silver-white eyes, elegant claws, dragon body coiling into circular form, slowly rotating and rising, tail elegantly swaying, head slightly tilting upward, scales flowing like waves, sea of clouds surrounding dragon, white lightning flashing in background, close-up circling shot, light passing through translucent dragon body, scales refracting soft white light, mystical ethereal atmosphere, Eastern mythological style",
       "negative_prompt": "low quality, blurry, distorted, unnatural pose, disproportionate dragon body, Western dragon design, golden sparkles, colorful elements, orange light particles, multicolored tones, stiff movement, straight flying, simplistic clouds, flat effects, lack of details, opaque dragon body, rough texture, messy composition, overexposed, low resolution, long shot, stationary dragon",
-      "model_name": "kling-v1-6",
+      "model_name": "kling-v1",
       "cfg_scale": 0,
       "mode": "std",
       "aspect_ratio": "16:9",

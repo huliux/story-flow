@@ -1,16 +1,20 @@
-import os
-import sys
-import json
-import asyncio
-from pathlib import Path
-from tqdm.asyncio import tqdm as async_tqdm
 import argparse
-import azure.cognitiveservices.speech as speechsdk
-from azure.cognitiveservices.speech import SpeechConfig, SpeechSynthesizer, AudioDataStream, ResultReason
-from io import BytesIO
+import asyncio
 import html
+import json
+import sys
+from io import BytesIO
+from pathlib import Path
+
+import azure.cognitiveservices.speech as speechsdk
+from azure.cognitiveservices.speech import (
+    ResultReason,
+    SpeechConfig,
+    SpeechSynthesizer,
+)
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+from tqdm.asyncio import tqdm as async_tqdm
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent.parent
@@ -22,6 +26,7 @@ from src.config import config
 if not config.azure_speech_key:
     print("错误: 未配置Azure语音服务密钥，请在.env文件中设置AZURE_SPEECH_KEY")
     sys.exit(1)
+
 
 class SpeechProvider:
     def __init__(self):
@@ -41,14 +46,18 @@ class SpeechProvider:
         """获取TTS音频数据"""
         for attempt in range(max_retries):
             try:
-                speech_config = SpeechConfig(subscription=self.subscription, region=self.region)
+                speech_config = SpeechConfig(
+                    subscription=self.subscription, region=self.region
+                )
                 speech_config.speech_synthesis_voice_name = self.voice_name
 
-                synthesizer = SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+                synthesizer = SpeechSynthesizer(
+                    speech_config=speech_config, audio_config=None
+                )
 
                 escaped_message = html.escape(message)
 
-                ssml_text = f"""
+                ssml_text = """
                 <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='{language}'>
                   <voice name='{self.voice_name}'>
                     <mstts:express-as style='{self.style}' role='{self.role}' styledegree='{self.style_degree}'>
@@ -61,29 +70,38 @@ class SpeechProvider:
                 """
 
                 loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(None, lambda: synthesizer.speak_ssml_async(ssml_text).get())
+                result = await loop.run_in_executor(
+                    None, lambda: synthesizer.speak_ssml_async(ssml_text).get()
+                )
 
                 if result.reason == ResultReason.SynthesizingAudioCompleted:
                     audio_data = BytesIO(result.audio_data)
                     return {"index": index, "audio_data": audio_data, "error": None}
                 elif result.reason == ResultReason.Canceled:
-                    cancellation_details = speechsdk.SpeechSynthesisCancellationDetails(result)
+                    cancellation_details = speechsdk.SpeechSynthesisCancellationDetails(
+                        result
+                    )
                     error_msg = f"语音合成被取消：{cancellation_details.reason} - {cancellation_details.error_details}"
                     if attempt < max_retries - 1:
-                        print(f"序号 {index} 合成失败 (尝试 {attempt + 1}/{max_retries}): {error_msg}")
+                        print(
+                            f"序号 {index} 合成失败 (尝试 {attempt + 1}/{max_retries}): {error_msg}"
+                        )
                         await asyncio.sleep(1)  # 等待1秒后重试
                     else:
                         return {"index": index, "audio_data": None, "error": error_msg}
-                        
+
             except Exception as e:
                 error_msg = f"语音合成异常: {str(e)}"
                 if attempt < max_retries - 1:
-                    print(f"序号 {index} 合成异常 (尝试 {attempt + 1}/{max_retries}): {error_msg}")
+                    print(
+                        f"序号 {index} 合成异常 (尝试 {attempt + 1}/{max_retries}): {error_msg}"
+                    )
                     await asyncio.sleep(1)  # 等待1秒后重试
                 else:
                     return {"index": index, "audio_data": None, "error": error_msg}
-        
+
         return {"index": index, "audio_data": None, "error": "达到最大重试次数"}
+
 
 def remove_silence(audio_path):
     """移除音频文件中的静音部分"""
@@ -101,88 +119,103 @@ def remove_silence(audio_path):
     except Exception as e:
         print(f"处理音频文件 {audio_path} 时出错: {e}")
 
+
 async def process_text_files(input_file, output_dir, language):
     """处理文本文件生成语音"""
-    print(f"Step 3: 语音合成")
+    print("Step 3: 语音合成")
     print(f"输入文件: {input_file}")
     print(f"输出目录: {output_dir}")
     print(f"语言: {language}")
-    
+
     # 检查输入文件
     if not input_file.exists():
         print(f"错误: 输入文件不存在 - {input_file}")
         return []
-    
+
     # 确保输出目录存在
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     try:
-        with open(input_file, 'r', encoding='utf-8') as f:
+        with open(input_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # 处理新的标准化格式和旧格式的兼容性
-        if isinstance(data, dict) and 'storyboards' in data:
+        if isinstance(data, dict) and "storyboards" in data:
             # 新的标准化格式
-            data_list = data['storyboards']
+            data_list = data["storyboards"]
         elif isinstance(data, list):
             # 旧的列表格式
             data_list = data
         else:
             print("错误: 无法识别的JSON格式")
             return []
-        
-        # 获取原始中文文本内容
-        column_data = [item.get("original_chinese", item.get("原始中文", "")) for item in data_list]
-        
+
+        # 获取narration字段作为配音文本内容
+        column_data = [
+            item.get(
+                "narration", item.get("original_chinese", item.get("原始中文", ""))
+            )
+            for item in data_list
+        ]
+
         # 过滤掉空的文本
-        texts = [(i, text) for i, text in enumerate(column_data, 1) if text and str(text).strip()]
-        
+        texts = [
+            (i, text)
+            for i, text in enumerate(column_data, 1)
+            if text and str(text).strip()
+        ]
+
         if not texts:
             print("错误: 未找到任何文本内容")
             return []
-        
+
         print(f"找到 {len(texts)} 个文本片段")
-        
+
         provider = SpeechProvider()
-        
+
         # 创建任务
         tasks = [provider.get_tts_audio(text, language, index) for index, text in texts]
-        
+
         results = []
         success_count = 0
         error_count = 0
-        
-        for f in async_tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="正在合成配音"):
+
+        for f in async_tqdm(
+            asyncio.as_completed(tasks), total=len(tasks), desc="正在合成配音"
+        ):
             result = await f
-            
-            if result['error']:
+
+            if result["error"]:
                 print(f"合成失败 - 序号 {result['index']}: {result['error']}")
                 error_count += 1
                 continue
-            
-            audio_data = result['audio_data']
+
+            audio_data = result["audio_data"]
             if audio_data:
                 output_path = output_dir / f"output_{result['index']}.wav"
                 try:
-                    with open(output_path, 'wb') as f:
+                    with open(output_path, "wb") as f:
                         f.write(audio_data.getbuffer())
-                    remove_silence(output_path)  # Remove silence after saving the audio file
+                    remove_silence(
+                        output_path
+                    )  # Remove silence after saving the audio file
                     success_count += 1
                 except Exception as e:
                     print(f"保存音频文件失败 - 序号 {result['index']}: {e}")
                     error_count += 1
             else:
                 error_count += 1
-                
+
             results.append(result)
-        
+
         # CSV文件无需关闭
         print(f"语音合成完成！成功: {success_count}, 失败: {error_count}")
         return results
-        
+
     except Exception as e:
         print(f"处理过程中发生错误: {e}")
         return []
+
 
 def main(json_file_path=None):
     """主函数"""
@@ -193,7 +226,7 @@ def main(json_file_path=None):
         input_file = config.output_json_file
     output_dir = config.output_dir_voice
     language = "zh-CN"
-    
+
     # 验证配置
     errors = config.validate_config()
     if errors:
@@ -201,30 +234,31 @@ def main(json_file_path=None):
         for error in errors:
             print(f"  - {error}")
         return False
-    
+
     try:
         # 运行异步处理
         results = asyncio.run(process_text_files(input_file, output_dir, language))
-        
+
         # 检查结果
-        success_results = [r for r in results if not r.get('error')]
-        
+        success_results = [r for r in results if not r.get("error")]
+
         if success_results:
             print(f"成功生成 {len(success_results)} 个语音文件")
             return True
         else:
             print("没有成功生成任何语音文件")
             return False
-            
+
     except Exception as e:
         print(f"程序执行出错: {e}")
         return False
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='语音合成工具')
-    parser.add_argument('--json-file', type=str, help='指定JSON文件路径')
+    parser = argparse.ArgumentParser(description="语音合成工具")
+    parser.add_argument("--json-file", type=str, help="指定JSON文件路径")
     args = parser.parse_args()
-    
+
     success = main(args.json_file)
     if not success:
         sys.exit(1)

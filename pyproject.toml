@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "azure-cognitiveservices-speech>=1.45.0",
-    "markdown>=3.8.2",
     "moviepy>=2.2.1",
     "numpy>=2.2.6",
     "openai>=1.99.9",
@@ -16,11 +15,20 @@ dependencies = [
     "pytest-asyncio>=1.1.0",
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
+    "safety>=3.6.0",
+    "toml>=0.10.2",
     "tqdm>=4.67.1",
+    "websocket-client>=1.8.0",
 ]
 
 [dependency-groups]
 dev = [
+    "autoflake>=2.3.1",
+    "black>=25.1.0",
+    "flake8>=7.3.0",
+    "isort>=6.0.1",
+    "mypy>=1.17.1",
     "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
 ]
