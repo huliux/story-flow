@@ -11,6 +11,14 @@
 
 **🚀 Transform text into videos, bring stories to life!**
 
+一个强大的AI驱动文本到视频生成系统，能够将小说、故事等文本内容自动转换为包含AI生成图像、真实语音合成和精美字幕的完整视频作品。使用现代化的uv包管理器，提供快速、可靠的依赖管理体验。
+
+## 🎬 Demo Videos
+
+https://github.com/user-attachments/assets/4dd1df77-4b7a-4a04-bf7d-d14baaa8955a
+
+https://github.com/user-attachments/assets/a45d2af8-51bb-4db7-a9eb-a546cdafe2dc
+
 *AI-powered automated video generation system designed for content creators*
 
 **🌍 Language:** [English](README.md) | [中文](docs/README_CN.md)
